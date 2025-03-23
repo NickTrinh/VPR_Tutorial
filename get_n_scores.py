@@ -40,7 +40,7 @@ def get_scores_for_img(this_img_i, this_img_j, img_descriptors_matrix, picked_se
     
     print(f'===== Compute cosine similarities S for p{this_img_i}/i{this_img_j} against all other images')
     
-    for i in range(10):
+    for i in range(11):
         test_img_feature = img_descriptors_matrix[i, test_set[i]]
         test_img_feature = test_img_feature / np.linalg.norm(test_img_feature, axis=1, keepdims=True)
         
@@ -83,7 +83,7 @@ def run_single_test():
     print('===== Computing descriptors for all images')
     
     # Initialize descriptor matrix
-    img_descriptors_matrix = np.ndarray(shape=(10, 3), dtype=object)
+    img_descriptors_matrix = np.ndarray(shape=(11, 3), dtype=object)
     
     # Initialize picked and test sets
     picked_set = []
@@ -91,7 +91,7 @@ def run_single_test():
     
     # Randomly select 2 images out of 3 for each place
     print('===== Selecting 2 images from 3 and storing the remaining for testing')
-    for i in range(10):
+    for i in range(11):
         numbers = set([0, 1, 2]) 
         picked_two = list(np.random.choice(list(numbers), size=2, replace=False))
         picked_set.append(picked_two)
@@ -104,7 +104,7 @@ def run_single_test():
         print(f'Place {i}: Test image: {test_set[i]}')
     
     # Compute descriptors for all images
-    for i in range(10):
+    for i in range(11):
         for j in range(3):
             print(f'===== Computing descriptors for p{i}/i{j}')
             img_descriptor = get_descriptor(destination + f'p{i}/i{j}' + '/*.jpg')
@@ -114,7 +114,7 @@ def run_single_test():
     print('===== Computing scores for picked images')
     all_scores = {}
     
-    for i in range(10):
+    for i in range(11):
         for j in picked_set[i]:
             print(f'===== Computing scores for p{i}/i{j}')
             scores = get_scores_for_img(i, j, img_descriptors_matrix, picked_set, test_set)

@@ -22,7 +22,7 @@ def setup_test_data():
     destination = 'images/MatchingTriplets/'
     
     # Initialize descriptor matrix
-    img_descriptors_matrix = np.ndarray(shape=(10, 3), dtype=object)
+    img_descriptors_matrix = np.ndarray(shape=(11, 3), dtype=object)
     
     # Initialize picked and test sets
     picked_set = []
@@ -30,7 +30,7 @@ def setup_test_data():
     
     # Randomly select 2 images out of 3 for each place
     print('===== Selecting 2 images from 3 and storing the remaining for testing')
-    for i in range(10):
+    for i in range(11):
         numbers = set([0, 1, 2]) 
         picked_two = list(np.random.choice(list(numbers), size=2, replace=False))
         picked_set.append(picked_two)
@@ -44,7 +44,7 @@ def setup_test_data():
     
     # Compute descriptors for all images
     print('===== Computing descriptors for all images')
-    for i in range(10):
+    for i in range(11):
         for j in range(3):
             print(f'===== Computing descriptors for p{i}/i{j}')
             img_descriptor = get_descriptor(destination + f'p{i}/i{j}' + '/*.jpg')
@@ -70,11 +70,11 @@ def test_with_place_thresholds(img_descriptors_matrix, picked_set, test_set):
     
     # Test each test image against all picked images
     print('===== Testing images against place-level thresholds')
-    for k in range(10):  # For each place
+    for k in range(11):  # For each place
         test_img_feature = img_descriptors_matrix[k, test_set[k]]
         test_img_feature = test_img_feature / np.linalg.norm(test_img_feature, axis=1, keepdims=True)
         
-        for i in range(10):  # Against each place
+        for i in range(11):  # Against each place
             # Get threshold values for this place from places array (place-level)
             mean_bad_scores = places[i].mean_bad_scores
             std_dev_bad_scores = places[i].std_dev_bad_scores
@@ -142,11 +142,11 @@ def test_with_image_thresholds(img_descriptors_matrix, picked_set, test_set):
     
     # Test each test image against all picked images
     print('===== Testing images against image-level thresholds')
-    for k in range(10):  # For each place
+    for k in range(11):  # For each place
         test_img_feature = img_descriptors_matrix[k, test_set[k]]
         test_img_feature = test_img_feature / np.linalg.norm(test_img_feature, axis=1, keepdims=True)
         
-        for i in range(10):  # Against each place
+        for i in range(11):  # Against each place
             for j in picked_set[i]:  # Against each picked image
                 # Get threshold values for this image from places_matrix
                 mean_bad_scores = places_matrix[i][j].mean_bad_scores
