@@ -1,7 +1,7 @@
 # VPR_Tutorial
 
 ## Overview
-This repository contains tutorials and resources to help you get started with Visual Place Recognition (VPR). These are primarily written in Python scripts.
+VPR Research repository. These are primarily written in Python scripts. FRCV Lab
 
 ## Prerequisites
 Before you begin, ensure you have the following installed:
