@@ -19,7 +19,7 @@ class ScoresStruct():
 
 # The places and places_matrix arrays have been moved to places_data.py
 
-destination = 'images/MatchingTriplets/'
+destination = 'images/FordhamPlaces/'
 
 # Number of runs to average
 NUM_RUNS = 30
