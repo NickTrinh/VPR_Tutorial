@@ -29,13 +29,13 @@ class MultiDatasetRunner:
             try:
                 config = auto_detect_dataset_structure(config)
                 if validate_dataset_structure(config):
-                    status = "✓ Ready"
+                    status = "[OK] Ready"
                     info = f"({config.num_places} places, {config.images_per_place} images/place)"
                 else:
-                    status = "✗ Invalid structure"
+                    status = "[X] Invalid structure"
                     info = ""
             except Exception as e:
-                status = f"✗ Error: {str(e)}"
+                status = f"[X] Error: {str(e)}"
                 info = ""
             
             print(f"{name:15} | {status:15} | {config.description} {info}")
@@ -54,10 +54,10 @@ class MultiDatasetRunner:
                     dataset_name, self.experiment_config, use_cache
                 )
                 
-                print(f"✓ Experiment completed for {dataset_name}")
+                print(f"[✓] Experiment completed for {dataset_name}")
                 
             except Exception as e:
-                print(f"✗ Error running experiment on {dataset_name}: {str(e)}")
+                print(f"[X] Error running experiment on {dataset_name}: {str(e)}")
                 continue
     
     def test_datasets(self, dataset_names: List[str], random_state: int = 42, use_cache: bool = True):
@@ -81,10 +81,10 @@ class MultiDatasetRunner:
                     'image_results': image_results
                 })
                 
-                print(f"✓ Test completed for {dataset_name}")
+                print(f"[✓] Test completed for {dataset_name}")
                 
             except Exception as e:
-                print(f"✗ Error testing {dataset_name}: {str(e)}")
+                print(f"[X] Error testing {dataset_name}: {str(e)}")
                 continue
     
     def run_full_pipeline_on_datasets(self, dataset_names: List[str], random_state: int = 42, use_cache: bool = True):
@@ -189,6 +189,14 @@ def main():
                        help='Disable descriptor caching (slower but saves disk space)')
     parser.add_argument('--clear-cache', action='store_true',
                        help='Clear cached descriptors before running')
+    parser.add_argument('--threshold-multiplier', type=float, default=1.0,
+                       help='Multiplier for threshold adjustment (< 1.0 = more lenient, default: 1.0)')
+    parser.add_argument('--threshold-method', type=str, default="original",
+                       choices=["original", "optimal_f1", "youden_j", "cost_sensitive", 
+                               "gaussian_intersection", "quantile_90", "quantile_80", 
+                               "otsu_adapted", "ensemble", "precision_80", "precision_90", 
+                               "precision_95", "conservative_f1", "max_fpr_5", "mean_plus_2std", "mean_plus_3std"],
+                       help='Threshold calculation method (default: original)')
     
     args = parser.parse_args()
     
@@ -198,7 +206,9 @@ def main():
     # Create experiment configuration
     experiment_config = ExperimentConfig(
         num_runs=args.num_runs,
-        random_seed=args.random_state
+        random_seed=args.random_state,
+        threshold_multiplier=args.threshold_multiplier,
+        threshold_method=args.threshold_method
     )
     
     runner = MultiDatasetRunner(experiment_config)

@@ -19,6 +19,8 @@ class ExperimentConfig:
     random_seed: int = 42
     train_test_split: Tuple[int, int] = (2, 1)  # (train_images, test_images) per place
     output_dir: str = "results"
+    threshold_multiplier: float = 1.0  # Multiplier for threshold adjustment (< 1.0 = more lenient)
+    threshold_method: str = "original"  # "original", "optimal_f1", "youden_j", "cost_sensitive", "gaussian_intersection", "quantile_90", "quantile_80", "otsu_adapted", "ensemble", "precision_80", "precision_90", "precision_95", "conservative_f1", "max_fpr_5", "mean_plus_2std", "mean_plus_3std"
 
 # Dataset configurations
 DATASETS = {
