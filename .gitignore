@@ -183,3 +183,8 @@ a more nuclear
 entire idea folder.
 #.idea/
 
+cache/
+cached_descriptors/
+results/FordhamPlaces/
+results/MatchingTriplets/
+
