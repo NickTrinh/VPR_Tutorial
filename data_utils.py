@@ -112,14 +112,16 @@ class DatasetLoader:
             shutil.rmtree(self.cache_dir)
             print(f"Cleared cache for {self.config.name}")
     
-    def create_train_test_split(self, random_state: int = 42) -> Tuple[List[List[int]], List[int]]:
+    def create_train_test_split(self, random_state: int = None) -> Tuple[List[List[int]], List[int]]:
         """Create train/test split for each place"""
-        np.random.seed(random_state)
+        if random_state is not None:
+            np.random.seed(random_state)
+        # If random_state is None, use current system state (truly random)
         
         picked_set = []
         test_set = []
         
-        print(f'Creating train/test split for {self.config.name}')
+        print(f'Creating train/test split for {self.config.name} (random_state: {random_state})')
         for i in range(self.config.num_places):
             # All possible image indices for this place
             all_indices = list(range(self.config.images_per_place))

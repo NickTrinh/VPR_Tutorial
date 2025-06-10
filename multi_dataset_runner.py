@@ -2,8 +2,10 @@ import os
 import csv
 from typing import Dict, List
 import argparse
+from datetime import datetime
+import time
 
-from config import DATASETS, ExperimentConfig
+from config import DATASETS, ExperimentConfig, DEFAULT_EXPERIMENT
 from experiment_runner import run_experiment_on_dataset
 from test_runner import test_dataset, TestResults
 from data_utils import validate_dataset_structure
@@ -14,7 +16,6 @@ class MultiDatasetRunner:
     
     def __init__(self, experiment_config: ExperimentConfig = None):
         if experiment_config is None:
-            from config import DEFAULT_EXPERIMENT
             experiment_config = DEFAULT_EXPERIMENT
         
         self.experiment_config = experiment_config
@@ -60,7 +61,7 @@ class MultiDatasetRunner:
                 print(f"[X] Error running experiment on {dataset_name}: {str(e)}")
                 continue
     
-    def test_datasets(self, dataset_names: List[str], random_state: int = 42, use_cache: bool = True):
+    def test_datasets(self, dataset_names: List[str], random_state: int = None, use_cache: bool = True):
         """Test multiple datasets and collect results"""
         print(f"Testing {len(dataset_names)} datasets")
         print("=" * 60)
@@ -78,7 +79,9 @@ class MultiDatasetRunner:
                     'dataset': dataset_name,
                     'dataset_name': dataset_config.name,
                     'place_results': place_results,
-                    'image_results': image_results
+                    'image_results': image_results,
+                    'random_state': random_state,
+                    'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 })
                 
                 print(f"[✓] Test completed for {dataset_name}")
@@ -87,7 +90,7 @@ class MultiDatasetRunner:
                 print(f"[X] Error testing {dataset_name}: {str(e)}")
                 continue
     
-    def run_full_pipeline_on_datasets(self, dataset_names: List[str], random_state: int = 42, use_cache: bool = True):
+    def run_full_pipeline_on_datasets(self, dataset_names: List[str], random_state: int = None, use_cache: bool = True):
         """Run both experiments and tests on multiple datasets"""
         print(f"Running full pipeline on {len(dataset_names)} datasets")
         print("=" * 60)
@@ -116,23 +119,29 @@ class MultiDatasetRunner:
         # Save detailed comparison
         filename = os.path.join(comparison_dir, "dataset_comparison.csv")
         
-        with open(filename, 'w', newline='') as file:
+        # Check if file exists to determine if we should write header
+        file_exists = os.path.exists(filename)
+        
+        with open(filename, 'a', newline='') as file:  # 'a' for append mode
             writer = csv.writer(file)
             
-            # Header
-            writer.writerow([
-                'Dataset', 'Test Type', 'TP', 'FP', 'TN', 'FN', 
-                'Precision', 'Recall', 'Accuracy', 'F1 Score'
-            ])
+            # Write header only if file doesn't exist
+            if not file_exists:
+                writer.writerow([
+                    'Timestamp', 'Dataset', 'Test Type', 'Random State', 'TP', 'FP', 'TN', 'FN', 
+                    'Precision', 'Recall', 'Accuracy', 'F1 Score'
+                ])
             
             # Write results for each dataset
             for result in self.results_summary:
                 dataset = result['dataset_name']
+                timestamp = result['timestamp']
+                random_state = result['random_state'] if result['random_state'] is not None else "random"
                 
                 # Place-level results
                 pr = result['place_results']
                 writer.writerow([
-                    dataset, 'Place-level', pr.TP, pr.FP, pr.TN, pr.FN,
+                    timestamp, dataset, 'Place-level', random_state, pr.TP, pr.FP, pr.TN, pr.FN,
                     f"{pr.precision:.4f}", f"{pr.recall:.4f}", 
                     f"{pr.accuracy:.4f}", f"{pr.f1_score:.4f}"
                 ])
@@ -140,12 +149,12 @@ class MultiDatasetRunner:
                 # Image-level results
                 ir = result['image_results']
                 writer.writerow([
-                    dataset, 'Image-level', ir.TP, ir.FP, ir.TN, ir.FN,
+                    timestamp, dataset, 'Image-level', random_state, ir.TP, ir.FP, ir.TN, ir.FN,
                     f"{ir.precision:.4f}", f"{ir.recall:.4f}", 
                     f"{ir.accuracy:.4f}", f"{ir.f1_score:.4f}"
                 ])
         
-        print(f"\nComparison report saved to: {filename}")
+        print(f"\nComparison report appended to: {filename}")
         
         # Print summary to console
         self.print_comparison_summary()
@@ -183,8 +192,8 @@ def main():
                        help='Run tests only (requires existing thresholds)')
     parser.add_argument('--num-runs', type=int, default=30,
                        help='Number of experiment runs (default: 30)')
-    parser.add_argument('--random-state', type=int, default=42,
-                       help='Random state for reproducibility (default: 42)')
+    parser.add_argument('--random-state', type=int, default=None,
+                       help='Random state for reproducibility (default: None for random)')
     parser.add_argument('--no-cache', action='store_true',
                        help='Disable descriptor caching (slower but saves disk space)')
     parser.add_argument('--clear-cache', action='store_true',
@@ -206,7 +215,7 @@ def main():
     # Create experiment configuration
     experiment_config = ExperimentConfig(
         num_runs=args.num_runs,
-        random_seed=args.random_state,
+        random_seed=args.random_state if args.random_state is not None else 42,
         threshold_multiplier=args.threshold_multiplier,
         threshold_method=args.threshold_method
     )
@@ -246,6 +255,7 @@ def main():
     
     print(f"Processing datasets: {valid_datasets}")
     print(f"Caching enabled: {use_cache}")
+    print(f"Random state: {args.random_state if args.random_state is not None else 'random'}")
     
     if args.experiment_only:
         runner.run_experiments_on_datasets(valid_datasets, use_cache)

@@ -79,7 +79,7 @@ class VPRTester:
         self.results_manager = ResultsManager(dataset_config.name)
         self.threshold_loader = ThresholdDataLoader(self.results_manager)
     
-    def setup_test_data(self, random_state: int = 42) -> Tuple[np.ndarray, List[List[int]], List[int]]:
+    def setup_test_data(self, random_state: int = None) -> Tuple[np.ndarray, List[List[int]], List[int]]:
         """Setup test data with train/test split and load descriptors"""
         print(f'Setting up test data for {self.dataset_config.name}')
         
@@ -210,7 +210,7 @@ class VPRTester:
                 image_results.precision, image_results.recall, image_results.accuracy, image_results.f1_score
             ])
     
-    def run_full_test(self, random_state: int = 42) -> Tuple[TestResults, TestResults]:
+    def run_full_test(self, random_state: int = None) -> Tuple[TestResults, TestResults]:
         """Run complete test with both place-level and image-level thresholds"""
         print(f'Running full test on {self.dataset_config.name}')
         
@@ -238,7 +238,7 @@ def print_test_results(results: TestResults, test_type: str):
     print(f"Accuracy: {results.accuracy:.4f}")
     print(f"F1 Score: {results.f1_score:.4f}")
 
-def test_dataset(dataset_name: str, random_state: int = 42, use_cache: bool = True):
+def test_dataset(dataset_name: str, random_state: int = None, use_cache: bool = True):
     """Test a specific dataset"""
     # Get and validate dataset configuration
     dataset_config = get_dataset_config(dataset_name)

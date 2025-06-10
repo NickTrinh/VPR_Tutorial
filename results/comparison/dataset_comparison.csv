@@ -1,3 +1,9 @@
-Dataset,Test Type,TP,FP,TN,FN,Precision,Recall,Accuracy,F1 Score
-MatchingTriplets,Place-level,19,16,164,1,0.5429,0.9500,0.9150,0.6909
-MatchingTriplets,Image-level,19,13,167,1,0.5938,0.9500,0.9300,0.7308
+Timestamp,Dataset,Type,Seed,True Positives,False Positives,True Negatives,False Negatives,Precision,Recall,Accuracy,F1 Score
+6/10/2025 10:02,FordhamPlaces,Place-level,random,7,12,208,15,0.3684,0.3182,0.8884,0.3415
+6/10/2025 10:02,FordhamPlaces,Image-level,random,9,11,209,13,0.45,0.4091,0.9008,0.4286
+6/10/2025 10:03,FordhamPlaces,Place-level,random,10,8,212,12,0.5556,0.4545,0.9174,0.5
+6/10/2025 10:03,FordhamPlaces,Image-level,random,14,9,211,8,0.6087,0.6364,0.9298,0.6222
+2025-06-10 10:06:18,FordhamPlaces,Place-level,random,12,9,211,10,0.5714,0.5455,0.9215,0.5581
+2025-06-10 10:06:18,FordhamPlaces,Image-level,random,14,16,204,8,0.4667,0.6364,0.9008,0.5385
+2025-06-10 10:08:30,MatchingTriplets,Place-level,random,8,1,179,12,0.8889,0.4000,0.9350,0.5517
+2025-06-10 10:08:30,MatchingTriplets,Image-level,random,13,1,179,7,0.9286,0.6500,0.9600,0.7647
