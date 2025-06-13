@@ -7,3 +7,7 @@ Timestamp,Dataset,Type,Seed,True Positives,False Positives,True Negatives,False 
 2025-06-10 10:06:18,FordhamPlaces,Image-level,random,14,16,204,8,0.4667,0.6364,0.9008,0.5385
 2025-06-10 10:08:30,MatchingTriplets,Place-level,random,8,1,179,12,0.8889,0.4000,0.9350,0.5517
 2025-06-10 10:08:30,MatchingTriplets,Image-level,random,13,1,179,7,0.9286,0.6500,0.9600,0.7647
+2025-06-13 11:01:06,MatchingTriplets,Place-level,random,9,0,180,11,1.0000,0.4500,0.9450,0.6207
+2025-06-13 11:01:06,MatchingTriplets,Image-level,random,12,0,180,8,1.0000,0.6000,0.9600,0.7500
+2025-06-13 11:20:40,FordhamPlaces,Place-level,random,14,0,220,8,1.0000,0.6364,0.9669,0.7778
+2025-06-13 11:20:40,FordhamPlaces,Image-level,random,17,1,219,5,0.9444,0.7727,0.9752,0.8500

@@ -6,14 +6,14 @@ from PIL import Image
 from glob import glob
 from typing import List, Tuple, Dict
 from config import DatasetConfig
-from feature_extraction.feature_extractor_holistic import HDCDELF
+from feature_extraction.feature_extractor_eigenplaces import EigenPlacesFeatureExtractor
 
 class DatasetLoader:
     """Utility class for loading and processing datasets"""
     
     def __init__(self, dataset_config: DatasetConfig, use_cache: bool = True):
         self.config = dataset_config
-        self.feature_extractor = HDCDELF()
+        self.feature_extractor = EigenPlacesFeatureExtractor()
         self.use_cache = use_cache
         self.cache_dir = os.path.join("cache", dataset_config.name)
         
