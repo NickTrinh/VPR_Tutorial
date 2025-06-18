@@ -23,7 +23,7 @@ import os
 from evaluation.metrics import createPR, recallAt100precision, recallAtK
 from evaluation import show_correct_and_wrong_matches
 from matching import matching
-from datasets.load_dataset import GardensPointDataset, StLuciaDataset, SFUDataset
+from datasets.load_dataset import GardensPointDataset, StLuciaDataset, SFUDataset, Tokyo247Dataset
 import numpy as np
 
 from matplotlib import pyplot as plt
@@ -32,7 +32,7 @@ from matplotlib import pyplot as plt
 def main():
     parser = argparse.ArgumentParser(description='Visual Place Recognition: A Tutorial. Code repository supplementing our paper.')
     parser.add_argument('--descriptor', type=str, default='HDC-DELF', choices=['HDC-DELF', 'AlexNet', 'NetVLAD', 'PatchNetVLAD', 'CosPlace', 'EigenPlaces', 'SAD'], help='Select descriptor (default: HDC-DELF)')
-    parser.add_argument('--dataset', type=str, default='GardensPoint', choices=['GardensPoint', 'StLucia', 'SFU'], help='Select dataset (default: GardensPoint)')
+    parser.add_argument('--dataset', type=str, default='GardensPoint', choices=['GardensPoint', 'StLucia', 'SFU', 'Tokyo247'], help='Select dataset (default: GardensPoint)')
     args = parser.parse_args()
 
     print('========== Start VPR with {} descriptor on dataset {}'.format(args.descriptor, args.dataset))
@@ -45,6 +45,8 @@ def main():
         dataset = StLuciaDataset()
     elif args.dataset == 'SFU':
         dataset = SFUDataset()
+    elif args.dataset == 'Tokyo247':
+        dataset = Tokyo247Dataset()
     else:
         raise ValueError('Unknown dataset: ' + args.dataset)
 

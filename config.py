@@ -58,6 +58,14 @@ DATASETS = {
         num_places=0,  # Will be detected automatically
         images_per_place=0,  # Will be detected automatically
         description="SFU dataset"
+    ),
+    "tokyo247": DatasetConfig(
+        name="Tokyo247",
+        path="mini_VPR_datasets/Tokyo24_7/tokyo247_vpr_format/",
+        num_places=99,
+        images_per_place=3,
+        image_extension="*.jpg",
+        description="Tokyo 24/7 dataset, formatted for VPR experiments"
     )
 }
 

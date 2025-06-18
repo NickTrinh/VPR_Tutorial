@@ -201,3 +201,41 @@ class TwoImgDataset(Dataset):
 
     def download(self, destination: str):
         pass
+
+
+class Tokyo247Dataset(Dataset):
+    def __init__(self, destination: str = 'mini_VPR_datasets/Tokyo24_7/tokyo247_vpr_format/'):
+        self.destination = destination
+
+    def load(self) -> Tuple[List[np.ndarray], List[np.ndarray], np.ndarray, np.ndarray]:
+        print('===== Load dataset Tokyo24/7')
+
+        if not os.path.exists(self.destination):
+            raise FileNotFoundError(f"Dataset directory not found at {self.destination}. Please run prepare_tokyo247.py first.")
+
+        # Use i0 images as database (typically day) and i1 as queries (typically night)
+        fns_db = sorted(glob(os.path.join(self.destination, 'p*/i0/*.jpg')))
+        fns_q = sorted(glob(os.path.join(self.destination, 'p*/i1/*.jpg')))
+
+        if not fns_db or not fns_q:
+            raise FileNotFoundError(f"Could not find images in {self.destination}. Ensure the structure is p*/i*/*.jpg")
+            
+        if len(fns_db) != len(fns_q):
+            print(f"Warning: Database and query sets have different numbers of images. DB: {len(fns_db)}, Q: {len(fns_q)}")
+
+        imgs_db = [np.array(Image.open(fn)) for fn in fns_db]
+        imgs_q = [np.array(Image.open(fn)) for fn in fns_q]
+
+        # create ground truth assuming one-to-one correspondence
+        num_places = min(len(imgs_db), len(imgs_q))
+        GThard = np.eye(num_places).astype('bool')
+        # Soft GT with a window of 1, adjust if needed
+        GTsoft = convolve2d(GThard.astype('int'),
+                            np.ones((3, 1), 'int'), mode='same').astype('bool')
+
+        return imgs_db, imgs_q, GThard, GTsoft
+
+    def download(self, destination: str):
+        print("Tokyo24/7 dataset is not available for download via this script.")
+        print("Please download it manually and use prepare_tokyo247.py to format it.")
+        pass
