@@ -201,10 +201,7 @@ def main():
     parser.add_argument('--threshold-multiplier', type=float, default=1.0,
                        help='Multiplier for threshold adjustment (< 1.0 = more lenient, default: 1.0)')
     parser.add_argument('--threshold-method', type=str, default="original",
-                       choices=["original", "optimal_f1", "youden_j", "cost_sensitive", 
-                               "gaussian_intersection", "quantile_90", "quantile_80", 
-                               "otsu_adapted", "ensemble", "precision_80", "precision_90", 
-                               "precision_95", "conservative_f1", "max_fpr_5", "mean_plus_2std", "mean_plus_3std"],
+                               choices=["original"],
                        help='Threshold calculation method (default: original)')
     
     args = parser.parse_args()
