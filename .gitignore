@@ -188,6 +188,8 @@ cached_descriptors/
 results/FordhamPlaces/
 results/MatchingTriplets/
 results/Tokyo247/
+results/StLuciaSmall/
 VPR-datasets-downloader/
 mini_VPR_datasets/
-
+gldv2_meta/
+images/

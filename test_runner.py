@@ -242,9 +242,10 @@ def test_dataset(dataset_name: str, random_state: int = None, use_cache: bool = 
     """Test a specific dataset"""
     # Get and validate dataset configuration
     dataset_config = get_dataset_config(dataset_name)
-    dataset_config = auto_detect_dataset_structure(dataset_config)
+    if dataset_config.format == 'landmark':
+        dataset_config = auto_detect_dataset_structure(dataset_config)
     
-    if not validate_dataset_structure(dataset_config):
+    if dataset_config.format == 'landmark' and not validate_dataset_structure(dataset_config):
         raise ValueError(f"Dataset structure validation failed for {dataset_name}")
     
     print(f"Testing {dataset_config.name}")

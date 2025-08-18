@@ -39,6 +39,8 @@ class Dataset(ABC):
 class GardensPointDataset(Dataset):
     def __init__(self, destination: str = 'images/GardensPoint/'):
         self.destination = destination
+        self.fns_db_path = 'day_right' # Add path for db images
+        self.fns_q_path = 'night_right' # Add path for query images
 
     def load(self) -> Tuple[List[np.ndarray], List[np.ndarray], np.ndarray, np.ndarray]:
         print('===== Load dataset GardensPoint day_right--night_right')
@@ -48,8 +50,8 @@ class GardensPointDataset(Dataset):
             self.download(self.destination)
 
         # load images
-        fns_db = sorted(glob(self.destination + 'day_right/*.jpg'))
-        fns_q = sorted(glob(self.destination + 'night_right/*.jpg'))
+        fns_db = sorted(glob(self.destination + self.fns_db_path + '/*.jpg'))
+        fns_q = sorted(glob(self.destination + self.fns_q_path + '/*.jpg'))
 
         imgs_db = [np.array(Image.open(fn)) for fn in fns_db]
         imgs_q = [np.array(Image.open(fn)) for fn in fns_q]
@@ -85,6 +87,8 @@ class GardensPointDataset(Dataset):
 class StLuciaDataset(Dataset):
     def __init__(self, destination: str = 'images/StLucia_small/'):
         self.destination = destination
+        self.fns_db_path = '100909_0845' # Add path for db images
+        self.fns_q_path = '180809_1545' # Add path for query images
 
     def load(self) -> Tuple[List[np.ndarray], List[np.ndarray], np.ndarray, np.ndarray]:
         print('===== Load dataset StLucia 100909_0845--180809_1545 (small version)')
@@ -94,8 +98,8 @@ class StLuciaDataset(Dataset):
             self.download(self.destination)
 
         # load images
-        fns_db = sorted(glob(self.destination + '100909_0845/*.jpg'))
-        fns_q = sorted(glob(self.destination + '180809_1545/*.jpg'))
+        fns_db = sorted(glob(self.destination + self.fns_db_path + '/*.jpg'))
+        fns_q = sorted(glob(self.destination + self.fns_q_path + '/*.jpg'))
 
         imgs_db = [np.array(Image.open(fn)) for fn in fns_db]
         imgs_q = [np.array(Image.open(fn)) for fn in fns_q]
@@ -131,6 +135,8 @@ class StLuciaDataset(Dataset):
 class SFUDataset(Dataset):
     def __init__(self, destination: str = 'images/SFU/'):
         self.destination = destination
+        self.fns_db_path = 'dry' # Add path for db images
+        self.fns_q_path = 'jan' # Add path for query images
 
     def load(self) -> Tuple[List[np.ndarray], List[np.ndarray], np.ndarray, np.ndarray]:
         print('===== Load dataset SFU dry--jan')
@@ -140,8 +146,8 @@ class SFUDataset(Dataset):
             self.download(self.destination)
 
         # load images
-        fns_db = sorted(glob(self.destination + 'dry/*.jpg'))
-        fns_q = sorted(glob(self.destination + 'jan/*.jpg'))
+        fns_db = sorted(glob(self.destination + self.fns_db_path + '/*.jpg'))
+        fns_q = sorted(glob(self.destination + self.fns_q_path + '/*.jpg'))
 
         imgs_db = [np.array(Image.open(fn)) for fn in fns_db]
         imgs_q = [np.array(Image.open(fn)) for fn in fns_q]

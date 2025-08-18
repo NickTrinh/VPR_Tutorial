@@ -7,6 +7,7 @@ class DatasetConfig:
     """Configuration for a dataset"""
     name: str
     path: str
+    format: str  # 'landmark' or 'sequential'
     num_places: int
     images_per_place: int
     image_extension: str = "*.jpg"
@@ -27,6 +28,7 @@ DATASETS = {
     "fordham_places": DatasetConfig(
         name="FordhamPlaces",
         path="images/FordhamPlaces/",
+        format="landmark",
         num_places=11,
         images_per_place=3,
         description="Fordham Places dataset with 11 places, 3 images each"
@@ -34,13 +36,23 @@ DATASETS = {
     "matching_triplets": DatasetConfig(
         name="MatchingTriplets",
         path="images/MatchingTriplets/",
+        format="landmark",
         num_places=10,
         images_per_place=3,
         description="Matching Triplets dataset with 10 places, 3 images each"
     ),
+    "google_landmarks_micro": DatasetConfig(
+        name="GoogleLandmarksMicro",
+        path="images/GoogleLandmarksMicro/",
+        format="landmark",
+        num_places=20,       # Will be auto-detected, but good to have a placeholder
+        images_per_place=50,  # Will be auto-detected
+        description="A micro subset of the Google Landmarks v2 dataset."
+    ),
     "st_lucia": DatasetConfig(
         name="StLuciaSmall",
         path="images/StLucia_small/",
+        format="sequential",
         num_places=0,  # Will be detected automatically
         images_per_place=0,  # Will be detected automatically
         description="St Lucia small dataset"
@@ -48,6 +60,7 @@ DATASETS = {
     "gardens_point": DatasetConfig(
         name="GardensPoint",
         path="images/GardensPoint/",
+        format="sequential",
         num_places=0,  # Will be detected automatically
         images_per_place=0,  # Will be detected automatically
         description="Gardens Point dataset"
@@ -55,6 +68,7 @@ DATASETS = {
     "sfu": DatasetConfig(
         name="SFU",
         path="images/SFU/",
+        format="sequential",
         num_places=0,  # Will be detected automatically
         images_per_place=0,  # Will be detected automatically
         description="SFU dataset"
@@ -62,6 +76,7 @@ DATASETS = {
     "tokyo247": DatasetConfig(
         name="Tokyo247",
         path="mini_VPR_datasets/Tokyo24_7/tokyo247_vpr_format/",
+        format="landmark",
         num_places=99,
         images_per_place=3,
         image_extension="*.jpg",

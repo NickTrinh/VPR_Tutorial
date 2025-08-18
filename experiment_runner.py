@@ -53,21 +53,21 @@ class VPRExperiment:
         std_dev_bad_scores = np.std(bad_scores)
         
         # Calculate filter_n using original method
-                filter_n = 0
-                if good_scores:
-                    min_good_score = min(good_scores)
-                    i = 1
-                    while True:
-                        threshold = mean_bad_scores + (i * std_dev_bad_scores)
-                        
-                        if min_good_score <= threshold:
-                            filter_n = i - 1
-                            break
-                        
-                        i += 1
-                        if i > 100:  # Safety break
-                            filter_n = 100
-                            break
+        filter_n = 0
+        if good_scores:
+            min_good_score = min(good_scores)
+            i = 1
+            while True:
+                threshold = mean_bad_scores + (i * std_dev_bad_scores)
+                
+                if min_good_score <= threshold:
+                    filter_n = i - 1
+                    break
+                
+                i += 1
+                if i > 100:  # Safety break
+                    filter_n = 100
+                    break
         
         # Apply threshold multiplier for tuning
         filter_n = filter_n * self.experiment_config.threshold_multiplier
@@ -243,9 +243,12 @@ def run_experiment_on_dataset(dataset_name: str, experiment_config: ExperimentCo
     
     # Get and validate dataset configuration
     dataset_config = get_dataset_config(dataset_name)
-    dataset_config = auto_detect_dataset_structure(dataset_config)
+    if dataset_config.format == 'landmark':
+        dataset_config = auto_detect_dataset_structure(dataset_config)
     
-    if not validate_dataset_structure(dataset_config):
+    # The validation needs to be format-aware as well.
+    # For now, let's assume sequential datasets are valid if path exists.
+    if dataset_config.format == 'landmark' and not validate_dataset_structure(dataset_config):
         raise ValueError(f"Dataset structure validation failed for {dataset_name}")
     
     print(f"Running experiment on {dataset_config.name}")

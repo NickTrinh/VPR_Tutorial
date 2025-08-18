@@ -21,3 +21,5 @@ Timestamp,Dataset,Type,Seed,True Positives,False Positives,True Negatives,False 
 2025-06-17 17:20:06,Tokyo247,Image-level,random,135,13,19391,63,0.9122,0.6818,0.9961,0.7803
 2025-06-17 17:26:07,Tokyo247,Place-level,random,106,0,19404,92,1.0000,0.5354,0.9953,0.6974
 2025-06-17 17:26:07,Tokyo247,Image-level,random,132,29,19375,66,0.8199,0.6667,0.9952,0.7354
+2025-08-16 09:57:41,StLuciaSmall,Place-level,random,6,2,33,1,0.7500,0.8571,0.9286,0.8000
+2025-08-16 09:57:41,StLuciaSmall,Image-level,random,7,6,29,0,0.5385,1.0000,0.8571,0.7000
