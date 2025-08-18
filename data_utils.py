@@ -26,7 +26,54 @@ class DatasetLoader:
             
         if self.config.format == 'sequential':
             self._load_or_generate_place_map()
+        elif self.config.format == 'landmark_grouped':
+            self._generate_place_map_from_grouped_landmark()
     
+    def _generate_place_map_from_grouped_landmark(self, step_size=10):
+        """
+        Builds a place_map in memory for landmark datasets with a flat structure,
+        based on filename conventions (e.g., first 3 of every 10 images).
+        """
+        print(f"Generating in-memory place map for {self.config.name}...")
+        
+        conditions = ["day_left", "day_right", "night_right"]
+        
+        # We need a master list of all unique image paths to create consistent indices
+        all_image_paths = []
+        for cond in conditions:
+            paths = sorted(glob(os.path.join(self.config.path, cond, "*.jpg")))
+            all_image_paths.extend(paths)
+        all_image_paths = sorted(list(set(all_image_paths)))
+        
+        path_to_idx = {path: i for i, path in enumerate(all_image_paths)}
+        
+        # Use a dictionary to build places to handle images from different conditions
+        places_dict = {}
+
+        for path in all_image_paths:
+            try:
+                # Extract the number from filename like '.../Image012.jpg'
+                img_num = int(os.path.basename(path).replace('Image', '').replace('.jpg', ''))
+                
+                # Integer division by step_size gives the place ID
+                place_id = img_num // step_size
+                
+                if place_id not in places_dict:
+                    places_dict[place_id] = []
+                
+                places_dict[place_id].append(path_to_idx[path])
+
+            except (ValueError, IndexError):
+                print(f"Warning: Could not parse image number from filename: {path}")
+
+        # Convert the dictionary of places to a list of lists (the place_map)
+        # We sort by the place_id to ensure the order is consistent
+        self.place_map = [sorted(list(set(places_dict[pid]))) for pid in sorted(places_dict.keys())]
+        
+        self.config.num_places = len(self.place_map)
+        self.config.images_per_place = max(len(p) for p in self.place_map) if self.place_map else 0
+        print(f"-> Generated place map with {self.config.num_places} places.")
+
     def _get_place_map_cache_path(self) -> str:
         """Get cache file path for the place map"""
         return os.path.join(self.cache_dir, "place_map.pkl")
@@ -175,8 +222,8 @@ class DatasetLoader:
         """Load descriptors for all images in the dataset with caching"""
         if self.config.format == 'landmark':
             return self._load_descriptors_landmark()
-        elif self.config.format == 'sequential':
-            return self._load_descriptors_sequential()
+        elif self.config.format in ['sequential', 'landmark_grouped']:
+            return self._load_descriptors_from_place_map()
 
     def _load_descriptors_landmark(self) -> np.ndarray:
         """Load descriptors for landmark-based datasets"""
@@ -198,17 +245,28 @@ class DatasetLoader:
         
         return descriptors_matrix
 
-    def _load_descriptors_sequential(self) -> np.ndarray:
-        """Load descriptors for sequential datasets using the place_map"""
-        if self.config.name == "StLuciaSmall":
-            loader = StLuciaDataset(self.config.path)
-        elif self.config.name == "SFU":
-            loader = SFUDataset(self.config.path)
-        else:
-            raise NotImplementedError(f"No sequential loader implemented for {self.config.name}")
-
-        db_image_paths = sorted(glob(os.path.join(self.config.path, loader.fns_db_path, '*.jpg')))
+    def _load_descriptors_from_place_map(self) -> np.ndarray:
+        """Load descriptors for datasets that use a place_map (sequential, landmark_grouped)"""
         
+        # This function needs a comprehensive list of all image paths
+        all_image_paths = []
+        if self.config.format == 'sequential':
+            if self.config.name == "StLuciaSmall":
+                loader = StLuciaDataset(self.config.path)
+            elif self.config.name == "SFU":
+                loader = SFUDataset(self.config.path)
+            else:
+                raise NotImplementedError(f"No sequential loader implemented for {self.config.name}")
+            all_image_paths = sorted(glob(os.path.join(self.config.path, loader.fns_db_path, '*.jpg')))
+        
+        elif self.config.format == 'landmark_grouped':
+            conditions = ["day_left", "day_right", "night_right"]
+            for cond in conditions:
+                paths = sorted(glob(os.path.join(self.config.path, cond, "*.jpg")))
+                all_image_paths.extend(paths)
+            all_image_paths = sorted(list(set(all_image_paths)))
+
+
         # Collect all unique image indices that need processing
         all_required_indices = sorted(list(set(idx for place in self.place_map for idx in place)))
         
@@ -224,7 +282,8 @@ class DatasetLoader:
                     cached_descriptors[idx] = pickle.load(f)['descriptor']
             else:
                 images_to_compute.append(idx)
-                paths_to_compute.append(db_image_paths[idx])
+                # Use the master path list to find the correct path for the index
+                paths_to_compute.append(all_image_paths[idx])
 
         # Compute features in a single batch for all images that are not cached
         if paths_to_compute:
@@ -290,7 +349,7 @@ class DatasetLoader:
                 
                 print(f'Place {i}: Train images: {picked_indices}, Test image: {test_index}')
         
-        elif self.config.format == 'sequential':
+        elif self.config.format in ['sequential', 'landmark_grouped']:
             for i, place_images in enumerate(self.place_map):
                 num_images_in_place = len(place_images)
                 all_indices = list(range(num_images_in_place))

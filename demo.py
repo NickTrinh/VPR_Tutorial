@@ -25,14 +25,50 @@ from evaluation import show_correct_and_wrong_matches
 from matching import matching
 from datasets.load_dataset import GardensPointDataset, StLuciaDataset, SFUDataset, Tokyo247Dataset
 import numpy as np
+import pandas as pd
 
 from matplotlib import pyplot as plt
 
 
+def apply_per_place_thresholds(S, db_place_ids, q_place_ids, place_thresholds):
+    """
+    Applies per-place thresholds to the similarity matrix S.
+    A match is made if S[i, j] is greater than or equal to the threshold
+    for the place corresponding to the database image i.
+    """
+    M = np.zeros_like(S, dtype=bool)
+    num_db, num_q = S.shape
+    
+    for i in range(num_db):
+        place_id = db_place_ids[i]
+        # Use the threshold for the database image's place
+        if place_id in place_thresholds:
+            threshold = place_thresholds[place_id]
+            for j in range(num_q):
+                if S[i, j] >= threshold:
+                    M[i, j] = True
+        # If a place has no threshold (e.g., filtered out by the sweep),
+        # it cannot make any matches.
+            
+    return M
+
+def get_place_ids_from_paths(paths):
+    """Extracts place ID from a list of file paths as a string (e.g., 'p0')."""
+    place_ids = []
+    for path in paths:
+        try:
+            filename = os.path.basename(path)
+            img_num = int(filename.replace('Image', '').replace('.jpg', ''))
+            place_id_num = img_num // 10
+            place_ids.append(f"p{place_id_num}")
+        except (ValueError, IndexError):
+            place_ids.append("p-1") # Invalid place ID
+    return place_ids
+
 def main():
     parser = argparse.ArgumentParser(description='Visual Place Recognition: A Tutorial. Code repository supplementing our paper.')
     parser.add_argument('--descriptor', type=str, default='HDC-DELF', choices=['HDC-DELF', 'AlexNet', 'NetVLAD', 'PatchNetVLAD', 'CosPlace', 'EigenPlaces', 'SAD'], help='Select descriptor (default: HDC-DELF)')
-    parser.add_argument('--dataset', type=str, default='GardensPoint', choices=['GardensPoint', 'StLucia', 'SFU', 'Tokyo247'], help='Select dataset (default: GardensPoint)')
+    parser.add_argument('--dataset', type=str, default='GardensPoint', choices=['GardensPoint', 'GardensPoint_Mini', 'StLucia', 'SFU', 'Tokyo247'], help='Select dataset (default: GardensPoint)')
     args = parser.parse_args()
 
     print('========== Start VPR with {} descriptor on dataset {}'.format(args.descriptor, args.dataset))
@@ -41,6 +77,9 @@ def main():
     print('===== Load dataset')
     if args.dataset == 'GardensPoint':
         dataset = GardensPointDataset()
+    elif args.dataset == 'GardensPoint_Mini':
+        # We can reuse the original loader
+        dataset = GardensPointDataset(destination='images/GardensPoint_Mini/')
     elif args.dataset == 'StLucia':
         dataset = StLuciaDataset()
     elif args.dataset == 'SFU':
@@ -79,7 +118,7 @@ def main():
         from feature_extraction.feature_extractor_eigenplaces import EigenPlacesFeatureExtractor
         feature_extractor = EigenPlacesFeatureExtractor()
     else:
-        raise ValueError('Unknown descriptor: ' + args.descriptor)
+        raise ValueError('Unknown dataset: ' + args.descriptor)
 
     if args.descriptor != 'PatchNetVLAD' and args.descriptor != 'SAD':
         print('===== Compute reference set descriptors')
@@ -151,33 +190,81 @@ def main():
     ax2.set_title('Thresholding S>=thresh')
 
     # PR-curve
-    P, R = createPR(S, GThard, GTsoft, matching='multi', n_thresh=100)
-    plt.figure()
-    plt.plot(R, P)
+    print("\\n===== Generating Baseline PR Curve (Global Threshold) =====")
+    P_baseline, R_baseline = createPR(S, GThard, GTsoft, matching='multi', n_thresh=100)
+    AUC_baseline = np.trapz(P_baseline, R_baseline)
+    print(f'Baseline AUC: {AUC_baseline:.3f}')
+
+    # --- Your Method: Per-Place Thresholding ---
+    print("\n===== Generating PR Curve for Our Method (Per-Place Thresholds) =====")
+    
+    # 1. Load the learned per-place thresholds
+    thresholds_path = f"results/{dataset.destination.split('/')[-2]}/place_averages.csv"
+    if not os.path.exists(thresholds_path):
+        print(f"Error: Threshold file not found at {thresholds_path}")
+        print("Please run multi_dataset_runner.py on gardens_point_mini first.")
+        return
+        
+    df_thresholds = pd.read_csv(thresholds_path)
+    # Create a dictionary mapping place_id to its learned threshold
+    place_thresholds = df_thresholds.set_index('Place')['Mean Bad Scores'].to_dict()
+    print(f"Loaded {len(place_thresholds)} per-place thresholds.")
+
+    # 2. We need to know which image belongs to which place
+    # We can infer this from the filenames based on our grouping rule
+    db_place_ids = get_place_ids_from_paths(dataset.db_paths)
+    q_place_ids = get_place_ids_from_paths(dataset.q_paths)
+
+    # 3. Generate the PR curve for your method
+    # We simulate a PR curve by incrementally applying the thresholds
+    # Get the unique threshold values and sort them. This will be our sweep.
+    threshold_values = sorted(list(set(place_thresholds.values())))
+    
+    P_ours, R_ours = [], []
+
+    # Sweep from most lenient to most strict
+    for thresh_sweep in threshold_values:
+        # Only use per-place thresholds that are >= the current sweep value
+        # This simulates making the matcher more strict
+        active_thresholds = {pid: t for pid, t in place_thresholds.items() if t >= thresh_sweep}
+        
+        # Get the matching matrix M based on the active thresholds
+        M_ours = apply_per_place_thresholds(S, db_place_ids, q_place_ids, active_thresholds)
+        
+        # Now, use the ground truth to score the matches in M
+        TP = np.count_nonzero(M_ours & GThard)
+        FP = np.count_nonzero(M_ours & ~GTsoft)
+        GTP = np.count_nonzero(GThard)
+
+        if (TP + FP) > 0:
+            precision = TP / (TP + FP)
+            recall = TP / GTP if GTP > 0 else 0
+            P_ours.append(precision)
+            R_ours.append(recall)
+
+    # Ensure the curve starts at (0, 1) and is monotonic
+    P_ours = [1.0] + P_ours
+    R_ours = [0.0] + R_ours
+    
+    AUC_ours = np.trapz(P_ours, R_ours)
+    print(f'Our Method AUC: {AUC_ours:.3f}')
+
+    # --- Plotting Comparison ---
+    dataset_name = dataset.destination.split('/')[-2]
+    plt.figure(figsize=(10, 8))
+    plt.plot(R_baseline, P_baseline, label=f'Baseline (Global Auto-Threshold) | AUC = {AUC_baseline:.3f}', marker='.')
+    plt.plot(R_ours, P_ours, label=f'Our Method (Per-Place Thresholds) | AUC = {AUC_ours:.3f}', marker='x')
+    
     plt.xlim(0, 1), plt.ylim(0, 1.01)
     plt.xlabel('Recall')
     plt.ylabel('Precision')
-    plt.title('Result on GardensPoint day_right--night_right')
+    plt.title(f'PR Curve Comparison on {dataset_name}')
     plt.grid('on')
-    plt.draw()
-
-    # area under curve (AUC)
-    AUC = np.trapz(P, R)
-    print(f'\n===== AUC (area under curve): {AUC:.3f}')
-
-    # maximum recall at 100% precision
-    maxR = recallAt100precision(S, GThard, GTsoft, matching='multi', n_thresh=100)
-    print(f'\n===== R@100P (maximum recall at 100% precision): {maxR:.2f}')
-
-    # recall at K
-    RatK = {}
-    for K in [1, 5, 10]:
-        RatK[K] = recallAtK(S, GThard, GTsoft, K=K)
-
-    print(f'\n===== recall@K (R@K) -- R@1: {RatK[1]:.3f}, R@5: {RatK[5]:.3f}, R@10: {RatK[10]:.3f}')
-
+    plt.legend()
+    plt.savefig(f"output_images/pr_curve_comparison_{dataset_name}.jpg")
+    print(f"\nSaved comparison PR curve to output_images/pr_curve_comparison_{dataset_name}.jpg")
     plt.show()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

@@ -24,6 +24,7 @@ import numpy as np
 from scipy.signal import convolve2d
 from typing import List, Tuple
 from abc import ABC, abstractmethod
+import imageio.v2 as imageio
 
 
 class Dataset(ABC):
@@ -39,8 +40,8 @@ class Dataset(ABC):
 class GardensPointDataset(Dataset):
     def __init__(self, destination: str = 'images/GardensPoint/'):
         self.destination = destination
-        self.fns_db_path = 'day_right' # Add path for db images
-        self.fns_q_path = 'night_right' # Add path for query images
+        self.db_paths = [] # Add attribute to store db paths
+        self.q_paths = [] # Add attribute to store q paths
 
     def load(self) -> Tuple[List[np.ndarray], List[np.ndarray], np.ndarray, np.ndarray]:
         print('===== Load dataset GardensPoint day_right--night_right')
@@ -49,14 +50,18 @@ class GardensPointDataset(Dataset):
         if not os.path.exists(self.destination):
             self.download(self.destination)
 
+        # get image paths
+        path_db = os.path.join(self.destination, 'day_right')
+        path_q = os.path.join(self.destination, 'night_right')
+        
+        self.db_paths = sorted(glob(os.path.join(path_db, '*.jpg')))
+        self.q_paths = sorted(glob(os.path.join(path_q, '*.jpg')))
+
         # load images
-        fns_db = sorted(glob(self.destination + self.fns_db_path + '/*.jpg'))
-        fns_q = sorted(glob(self.destination + self.fns_q_path + '/*.jpg'))
+        imgs_db = [imageio.imread(p) for p in self.db_paths]
+        imgs_q = [imageio.imread(p) for p in self.q_paths]
 
-        imgs_db = [np.array(Image.open(fn)) for fn in fns_db]
-        imgs_q = [np.array(Image.open(fn)) for fn in fns_q]
-
-        # create ground truth
+        # ground truth
         GThard = np.eye(len(imgs_db)).astype('bool')
         GTsoft = convolve2d(GThard.astype('int'),
                             np.ones((17, 1), 'int'), mode='same').astype('bool')
@@ -207,6 +212,38 @@ class TwoImgDataset(Dataset):
 
     def download(self, destination: str):
         pass
+
+
+class GardensPointLandmarkDataset(Dataset):
+    def __init__(self, destination: str = 'images/GardensPoint_Landmark/'):
+        self.destination = destination
+
+    def load(self) -> Tuple[List[np.ndarray], List[np.ndarray], np.ndarray, np.ndarray]:
+        print('===== Load dataset GardensPoint_Landmark (day_left vs night_right)')
+        
+        db_paths = sorted(glob(os.path.join(self.destination, 'p*', '*_day_left_*.jpg')))
+        q_paths = sorted(glob(os.path.join(self.destination, 'p*', '*_night_right_*.jpg')))
+
+        imgs_db = [imageio.imread(p) for p in db_paths]
+        imgs_q = [imageio.imread(p) for p in q_paths]
+
+        # Get the place ID from the path (e.g., 'images/GardensPoint_Landmark/p10')
+        db_place_ids = [int(os.path.basename(os.path.dirname(p))[1:]) for p in db_paths]
+        q_place_ids = [int(os.path.basename(os.path.dirname(p))[1:]) for p in q_paths]
+
+        num_db = len(imgs_db)
+        num_q = len(imgs_q)
+        
+        GThard = np.zeros((num_db, num_q), dtype=bool)
+        for i in range(num_db):
+            for j in range(num_q):
+                if db_place_ids[i] == q_place_ids[j]:
+                    GThard[i, j] = True
+
+        # No soft ground truth for this dataset
+        GTsoft = np.zeros_like(GThard, dtype=bool)
+
+        return imgs_db, imgs_q, GThard, GTsoft
 
 
 class Tokyo247Dataset(Dataset):

@@ -7,7 +7,7 @@ class DatasetConfig:
     """Configuration for a dataset"""
     name: str
     path: str
-    format: str  # 'landmark' or 'sequential'
+    format: str  # 'landmark', 'sequential', or 'landmark_grouped'
     num_places: int
     images_per_place: int
     image_extension: str = "*.jpg"
@@ -40,6 +40,15 @@ DATASETS = {
         num_places=10,
         images_per_place=3,
         description="Matching Triplets dataset with 10 places, 3 images each"
+    ),
+    "gardens_point_mini": DatasetConfig(
+        name="GardensPoint_Mini",
+        path="images/GardensPoint_Mini/",
+        format="landmark_grouped",
+        # These will be determined by the loader, placeholders are fine
+        num_places=20, 
+        images_per_place=9,
+        description="A smaller, landmark-style version of Gardens Point (flat structure)."
     ),
     "google_landmarks_micro": DatasetConfig(
         name="GoogleLandmarksMicro",
