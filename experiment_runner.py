@@ -171,7 +171,7 @@ class VPRExperiment:
         
         # Calculate place-level averages
         place_data = {}
-        for img_key, result in image_averages.items():
+        for img_key, result in aggregated_results.items():
             place = img_key.split('/')[0]  # Extract place (e.g., 'p0')
             if place not in place_data:
                 place_data[place] = {
@@ -180,16 +180,34 @@ class VPRExperiment:
                     'filter_n': []
                 }
             
-            place_data[place]['mean_bad_scores'].append(result['mean_bad_scores'])
-            place_data[place]['std_dev_bad_scores'].append(result['std_dev_bad_scores'])
-            place_data[place]['filter_n'].append(result['filter_n'])
+            # Note: We are aggregating the *results* from each run, not the *averages*.
+            place_data[place]['mean_bad_scores'].extend(result['mean_bad_scores'])
+            place_data[place]['std_dev_bad_scores'].extend(result['std_dev_bad_scores'])
+            place_data[place]['filter_n'].extend(result['filter_n'])
         
         place_averages = {}
         for place, data in place_data.items():
+            
+            # --- Threshold and Std Dev data from all runs for this place ---
+            # These are the individual threshold estimates (t1, t2, t3...) from each run
+            thresholds = np.array(data['mean_bad_scores']) 
+            # These are the std_devs of the 'bad_scores' that were used to calculate each threshold
+            std_devs = np.array(data['std_dev_bad_scores'])
+            
+            # --- Method 1: Simple Average Threshold ---
+            simple_avg_threshold = np.mean(thresholds)
+            
+            # --- Method 2: Mixture-Weighted Average Threshold ---
+            # Weight is 1 / variance. Add epsilon to avoid division by zero.
+            weights = 1.0 / (std_devs**2 + 1e-9)
+            weighted_avg_threshold = np.sum(weights * thresholds) / np.sum(weights)
+
             place_averages[place] = {
-                'mean_bad_scores': np.mean(data['mean_bad_scores']),
-                'std_dev_bad_scores': np.mean(data['std_dev_bad_scores']),
-                'filter_n': np.mean(data['filter_n'])
+                'simple_avg_threshold': simple_avg_threshold,
+                'weighted_avg_threshold': weighted_avg_threshold,
+                # The std dev of the final thresholds is a good measure of consistency
+                'std_dev_of_thresholds': np.std(thresholds),
+                'avg_filter_n': np.mean(data['filter_n'])
             }
         
         # Save averages
@@ -220,19 +238,27 @@ class VPRExperiment:
     
     def save_place_averages(self, averages: Dict):
         """Save place-level averages to CSV"""
-        filename = self.results_manager.get_place_averages_filename()
+        # --- Force output to the correct directory name for demo.py ---
+        output_dir = self.results_manager.dataset_dir
+        if os.path.basename(output_dir) == "gardens_point_mini":
+            output_dir = os.path.join(os.path.dirname(output_dir), "GardensPoint_Mini")
+            os.makedirs(output_dir, exist_ok=True)
         
+        filename = os.path.join(output_dir, "place_averages.csv")
+        # --- End of fix ---
+
         with open(filename, 'w', newline='') as file:
             writer = csv.writer(file)
-            writer.writerow(['Place', 'Mean Bad Scores', 'Std Deviation Bad Scores', 'Filter N'])
+            writer.writerow(['Place', 'Simple_Avg_Threshold', 'Weighted_Avg_Threshold', 'Std_Dev_of_Thresholds', 'Avg_Filter_N'])
             
             for place in sorted(averages.keys(), key=lambda x: int(x[1:])):
                 result = averages[place]
                 writer.writerow([
                     place,
-                    result['mean_bad_scores'],
-                    result['std_dev_bad_scores'],
-                    result['filter_n']
+                    result['simple_avg_threshold'],
+                    result['weighted_avg_threshold'],
+                    result['std_dev_of_thresholds'],
+                    result['avg_filter_n']
                 ])
 
 def run_experiment_on_dataset(dataset_name: str, experiment_config: ExperimentConfig = None, use_cache: bool = True):

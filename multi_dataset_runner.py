@@ -4,6 +4,8 @@ from typing import Dict, List
 import argparse
 from datetime import datetime
 import time
+import numpy as np
+import pandas as pd
 
 from config import DATASETS, ExperimentConfig, DEFAULT_EXPERIMENT
 from experiment_runner import run_experiment_on_dataset
@@ -182,7 +184,7 @@ class MultiDatasetRunner:
 
 def main():
     parser = argparse.ArgumentParser(description='Run VPR experiments on multiple datasets')
-    parser.add_argument('--datasets', nargs='+', 
+    parser.add_argument('--dataset', nargs='+', 
                        help='Dataset names to process (e.g., fordham_places st_lucia)')
     parser.add_argument('--list', action='store_true', 
                        help='List available datasets')
@@ -223,14 +225,14 @@ def main():
         runner.list_available_datasets()
         return
     
-    if not args.datasets:
+    if not args.dataset:
         print("No datasets specified. Use --list to see available datasets.")
         return
     
     # Clear cache if requested
     if args.clear_cache:
         from data_utils import DatasetLoader
-        for dataset_name in args.datasets:
+        for dataset_name in args.dataset:
             try:
                 dataset_config = get_dataset_config(dataset_name)
                 loader = DatasetLoader(dataset_config, use_cache=True)
@@ -240,7 +242,7 @@ def main():
     
     # Validate dataset names
     valid_datasets = []
-    for dataset_name in args.datasets:
+    for dataset_name in args.dataset:
         if dataset_name in DATASETS:
             valid_datasets.append(dataset_name)
         else:
