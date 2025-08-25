@@ -20,7 +20,7 @@ import argparse
 import configparser
 import os
 
-from evaluation.metrics import createPR, recallAt100precision, recallAtK
+from evaluation.metrics import recallAtK
 from evaluation import show_correct_and_wrong_matches
 from matching import matching
 from datasets.load_dataset import GardensPointDataset, StLuciaDataset, SFUDataset, Tokyo247Dataset
@@ -190,62 +190,17 @@ def main():
     ax2.axis('off')
     ax2.set_title('Thresholding S>=thresh')
 
-    # PR-curve
-    print("\\n===== Generating Baseline PR Curve (Global Threshold) =====")
-    P_baseline, R_baseline = createPR(S, GThard, GTsoft, matching='multi', n_thresh=100)
-    AUC_baseline = np.trapz(P_baseline, R_baseline)
-    print(f'Baseline AUC: {AUC_baseline:.3f}')
-
-    # --- Our Methods: Per-Place Thresholding ---
-    P_simple, R_simple, AUC_simple = None, None, 0.0
-    P_weighted, R_weighted, AUC_weighted = None, None, 0.0
-
+    # Preload thresholds for Recall@K evaluation
     thresholds_path = "results/GardensPoint_Mini/place_averages.csv"
     if os.path.exists(thresholds_path):
         print(f"\nLoading thresholds from: {thresholds_path}")
         df_thresholds = pd.read_csv(thresholds_path)
         db_place_ids = get_place_ids_from_paths(dataset.db_paths)
         q_place_ids = get_place_ids_from_paths(dataset.q_paths)
-
-        # --- Simple Average Method ---
-        print("\n===== Generating PR Curve for Simple Average Method =====")
-        simple_avg_thresholds = df_thresholds.set_index('Place')['Simple_Avg_Threshold'].to_dict()
-        P_simple, R_simple = generate_pr_curve_for_place_thresholds(
-            S, db_place_ids, q_place_ids, simple_avg_thresholds, GThard, GTsoft
-        )
-        AUC_simple = np.trapz(P_simple, R_simple)
-        print(f'Simple Average Method AUC: {AUC_simple:.3f}')
-
-        # --- Weighted Average Method ---
-        print("\n===== Generating PR Curve for Weighted Average Method =====")
-        weighted_avg_thresholds = df_thresholds.set_index('Place')['Weighted_Avg_Threshold'].to_dict()
-        P_weighted, R_weighted = generate_pr_curve_for_place_thresholds(
-            S, db_place_ids, q_place_ids, weighted_avg_thresholds, GThard, GTsoft
-        )
-        AUC_weighted = np.trapz(P_weighted, R_weighted)
-        print(f'Weighted Average Method AUC: {AUC_weighted:.3f}')
     else:
+        df_thresholds = None
+        db_place_ids, q_place_ids = None, None
         print(f"\nWarning: Threshold file not found at {thresholds_path}")
-        print("Skipping PR curve generation for per-place methods.")
-
-    # --- Plotting Comparison ---
-    dataset_name = dataset.destination.split('/')[-2]
-    plt.figure(figsize=(10, 8))
-    plt.plot(R_baseline, P_baseline, label=f'Baseline (Global) | AUC = {AUC_baseline:.3f}', marker='.')
-    if P_simple is not None:
-        plt.plot(R_simple, P_simple, label=f'Simple Avg (Per-Place) | AUC = {AUC_simple:.3f}', marker='x')
-    if P_weighted is not None:
-        plt.plot(R_weighted, P_weighted, label=f'Weighted Avg (Per-Place) | AUC = {AUC_weighted:.3f}', marker='^')
-    
-    plt.xlim(0, 1), plt.ylim(0, 1.01)
-    plt.xlabel('Recall')
-    plt.ylabel('Precision')
-    plt.title(f'PR Curve Comparison on {dataset_name}')
-    plt.grid('on')
-    plt.legend()
-    plt.savefig(f"output_images/pr_curve_comparison_{dataset_name}.jpg")
-    print(f"\nSaved comparison PR curve to output_images/pr_curve_comparison_{dataset_name}.jpg")
-    # plt.show() # Comment out to prevent blocking script for Recall@K
 
     # =================================================================================
     # ===== New Section: Recall@K Evaluation ========================================
@@ -262,13 +217,13 @@ def main():
     # --- Our Methods (Per-Place Thresholds with Filtering) ---
     if os.path.exists(thresholds_path):
         # --- Method 2: Simple Average Per-Place Thresholds ---
-        simple_avg_thresholds = df_thresholds.set_index('Place')['Simple_Avg_Threshold'].to_dict()
+        simple_avg_thresholds = df_thresholds.set_index('place')['simple_avg_threshold'].to_dict()
         print("\n--- Method 2: Simple Average (Filter-then-Rank) ---")
         R_at_K_simple = calculate_recall_at_k_with_filtering(S, GThard, db_place_ids, q_place_ids, per_place_thresholds=simple_avg_thresholds)
         print_recall_at_k_results(R_at_K_simple)
 
         # --- Method 3: Weighted Average Per-Place Thresholds ---
-        weighted_avg_thresholds = df_thresholds.set_index('Place')['Weighted_Avg_Threshold'].to_dict()
+        weighted_avg_thresholds = df_thresholds.set_index('place')['weighted_avg_threshold'].to_dict()
         print("\n--- Method 3: Weighted Average (Filter-then-Rank) ---")
         R_at_K_weighted = calculate_recall_at_k_with_filtering(S, GThard, db_place_ids, q_place_ids, per_place_thresholds=weighted_avg_thresholds)
         print_recall_at_k_results(R_at_K_weighted)
@@ -276,46 +231,6 @@ def main():
         print("\nSkipping per-place threshold Recall@K evaluation because thresholds file was not found.")
 
     plt.show()
-
-
-def generate_pr_curve_for_place_thresholds(S, db_place_ids, q_place_ids, place_thresholds, GThard, GTsoft):
-    """
-    Generates a Precision-Recall curve by sweeping through a set of per-place thresholds.
-    """
-    # We simulate a PR curve by incrementally applying the thresholds
-    # Get the unique threshold values and sort them. This will be our sweep.
-    threshold_values = sorted(list(set(place_thresholds.values())))
-    
-    P, R = [], []
-
-    # Sweep from most lenient (lowest threshold) to most strict
-    for thresh_sweep in threshold_values:
-        # Only use per-place thresholds that are >= the current sweep value
-        # This simulates making the matcher more strict
-        active_thresholds = {pid: t for pid, t in place_thresholds.items() if t >= thresh_sweep}
-        
-        # Get the matching matrix M based on the active thresholds
-        M_ours = apply_per_place_thresholds(S, db_place_ids, q_place_ids, active_thresholds)
-        
-        # Now, use the ground truth to score the matches in M
-        TP = np.count_nonzero(M_ours & GThard)
-        FP = np.count_nonzero(M_ours & ~GTsoft)
-        GTP = np.count_nonzero(GThard)
-
-        if (TP + FP) > 0:
-            precision = TP / (TP + FP)
-            recall = TP / GTP if GTP > 0 else 0
-            P.append(precision)
-            R.append(recall)
-
-    # Ensure the curve starts at (0, 1) and is monotonic
-    if not P: # Handle case where no matches are ever made
-        return [1.0, 0.0], [0.0, 0.0]
-
-    P = [1.0] + P
-    R = [0.0] + R
-    
-    return P, R
 
 
 def calculate_recall_at_k_with_filtering(S, GThard, db_place_ids, q_place_ids, per_place_thresholds=None, ks=[1, 3, 5]):
