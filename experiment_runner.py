@@ -187,27 +187,30 @@ class VPRExperiment:
         
         place_averages = {}
         for place, data in place_data.items():
-            
-            # --- Threshold and Std Dev data from all runs for this place ---
-            # These are the individual threshold estimates (t1, t2, t3...) from each run
-            thresholds = np.array(data['mean_bad_scores']) 
-            # These are the std_devs of the 'bad_scores' that were used to calculate each threshold
+            mean_bads = np.array(data['mean_bad_scores'])
             std_devs = np.array(data['std_dev_bad_scores'])
-            
-            # --- Method 1: Simple Average Threshold ---
-            simple_avg_threshold = np.mean(thresholds)
-            
-            # --- Method 2: Mixture-Weighted Average Threshold ---
-            # Weight is 1 / variance. Add epsilon to avoid division by zero.
-            weights = 1.0 / (std_devs**2 + 1e-9)
-            weighted_avg_threshold = np.sum(weights * thresholds) / np.sum(weights)
+            filter_ns = np.array(data['filter_n'])
+
+            # Legacy mode: thresholds are mean of bad scores only (no margin)
+            if getattr(self.experiment_config, 'threshold_method', 'original') == 'legacy_mean_bad':
+                thresholds = mean_bads
+            else:
+                # Original (current) mode: per-sample thresholds t_j = mean_bad_j + filter_n_j * std_dev_bad_j
+                thresholds = mean_bads + filter_ns * std_devs
+
+            # Method 1: Simple average over all t_j
+            simple_avg_threshold = float(np.mean(thresholds))
+
+            # Method 2: Inverse-variance weighted average over all t_j
+            weight_power = 2  # change to 1 to use 1/sd weighting
+            weights = 1.0 / (np.power(std_devs, weight_power) + 1e-9)
+            weighted_avg_threshold = float(np.sum(weights * thresholds) / np.sum(weights))
 
             place_averages[place] = {
                 'simple_avg_threshold': simple_avg_threshold,
                 'weighted_avg_threshold': weighted_avg_threshold,
-                # The std dev of the final thresholds is a good measure of consistency
-                'std_dev_of_thresholds': np.std(thresholds),
-                'avg_filter_n': np.mean(data['filter_n'])
+                'std_dev_of_thresholds': float(np.std(thresholds)),
+                'avg_filter_n': float(np.mean(filter_ns))
             }
         
         # Save averages
@@ -249,7 +252,7 @@ class VPRExperiment:
 
         with open(filename, 'w', newline='') as file:
             writer = csv.writer(file)
-            writer.writerow(['Place', 'Simple_Avg_Threshold', 'Weighted_Avg_Threshold', 'Std_Dev_of_Thresholds', 'Avg_Filter_N'])
+            writer.writerow(['place', 'simple_avg_threshold', 'weighted_avg_threshold', 'std_dev_of_thresholds', 'avg_filter_n'])
             
             for place in sorted(averages.keys(), key=lambda x: int(x[1:])):
                 result = averages[place]

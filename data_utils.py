@@ -2,6 +2,7 @@ import numpy as np
 import os
 import pickle
 import hashlib
+import re
 from PIL import Image
 from glob import glob
 from typing import List, Tuple, Dict
@@ -29,50 +30,72 @@ class DatasetLoader:
         elif self.config.format == 'landmark_grouped':
             self._generate_place_map_from_grouped_landmark()
     
-    def _generate_place_map_from_grouped_landmark(self, step_size=10):
+    def _generate_place_map_from_grouped_landmark(self):
         """
-        Builds a place_map in memory for landmark datasets with a flat structure,
-        based on filename conventions (e.g., first 3 of every 10 images).
+        Builds a place_map for grouped datasets.
+        Preferred: parse unified filenames Place####_CondCC_GG.jpg.
+        Fallback: if no unified naming is found, generate by index using
+        grouping_step_size and grouping_group_size from config (e.g., take 3 skip 7).
         """
         print(f"Generating in-memory place map for {self.config.name}...")
-        
-        conditions = ["day_left", "day_right", "night_right"]
-        
-        # We need a master list of all unique image paths to create consistent indices
-        all_image_paths = []
+
+        # Resolve conditions from config if available; otherwise infer subfolders
+        if self.config.conditions:
+            conditions = self.config.conditions
+        else:
+            conditions = [d for d in sorted(os.listdir(self.config.path))
+                          if os.path.isdir(os.path.join(self.config.path, d))]
+
+        # Build a stable list of all image paths per condition and combined
+        per_condition_paths: List[List[str]] = []
         for cond in conditions:
-            paths = sorted(glob(os.path.join(self.config.path, cond, "*.jpg")))
-            all_image_paths.extend(paths)
-        all_image_paths = sorted(list(set(all_image_paths)))
-        
+            per_condition_paths.append(sorted(glob(os.path.join(self.config.path, cond, '*.jpg'))))
+        all_image_paths: List[str] = sorted(list(set(p for plist in per_condition_paths for p in plist)))
+
         path_to_idx = {path: i for i, path in enumerate(all_image_paths)}
-        
-        # Use a dictionary to build places to handle images from different conditions
-        places_dict = {}
 
+        # Try unified naming first
+        place_pattern = re.compile(r"Place(\d{4})_Cond\d{2}_G\d{2}\.jpg$", re.IGNORECASE)
+        places_dict: Dict[int, List[int]] = {}
         for path in all_image_paths:
-            try:
-                # Extract the number from filename like '.../Image012.jpg'
-                img_num = int(os.path.basename(path).replace('Image', '').replace('.jpg', ''))
-                
-                # Integer division by step_size gives the place ID
-                place_id = img_num // step_size
-                
-                if place_id not in places_dict:
-                    places_dict[place_id] = []
-                
-                places_dict[place_id].append(path_to_idx[path])
+            filename = os.path.basename(path)
+            m = place_pattern.search(filename)
+            if m:
+                place_id = int(m.group(1))
+                places_dict.setdefault(place_id, []).append(path_to_idx[path])
 
-            except (ValueError, IndexError):
-                print(f"Warning: Could not parse image number from filename: {path}")
+        if places_dict:
+            # Unified naming path
+            self.place_map = [sorted(list(set(places_dict[pid]))) for pid in sorted(places_dict.keys())]
+            self.config.num_places = len(self.place_map)
+            self.config.images_per_place = max(len(p) for p in self.place_map) if self.place_map else 0
+            print(f"-> Generated place map with {self.config.num_places} places (unified filenames).")
+            return
 
-        # Convert the dictionary of places to a list of lists (the place_map)
-        # We sort by the place_id to ensure the order is consistent
-        self.place_map = [sorted(list(set(places_dict[pid]))) for pid in sorted(places_dict.keys())]
-        
+        # Fallback: index-based grouping using config parameters
+        step_size = self.config.grouping_step_size or 10
+        group_size = self.config.grouping_group_size or 3
+        # Determine the minimum number of images across conditions
+        min_len = min(len(plist) for plist in per_condition_paths) if per_condition_paths else 0
+        place_map: List[List[int]] = []
+        place_idx = 0
+        idx = 0
+        while idx + group_size - 1 < min_len:
+            group_indices: List[int] = []
+            for g in range(group_size):
+                index = idx + g
+                # Add images across all conditions for this index
+                for cond_list in per_condition_paths:
+                    if index < len(cond_list):
+                        group_indices.append(path_to_idx[cond_list[index]])
+            place_map.append(sorted(list(set(group_indices))))
+            place_idx += 1
+            idx += step_size
+
+        self.place_map = place_map
         self.config.num_places = len(self.place_map)
-        self.config.images_per_place = max(len(p) for p in self.place_map) if self.place_map else 0
-        print(f"-> Generated place map with {self.config.num_places} places.")
+        self.config.images_per_place = max((len(p) for p in self.place_map), default=0)
+        print(f"-> Generated place map with {self.config.num_places} places (index-based grouping).")
 
     def _get_place_map_cache_path(self) -> str:
         """Get cache file path for the place map"""
@@ -260,7 +283,12 @@ class DatasetLoader:
             all_image_paths = sorted(glob(os.path.join(self.config.path, loader.fns_db_path, '*.jpg')))
         
         elif self.config.format == 'landmark_grouped':
-            conditions = ["day_left", "day_right", "night_right"]
+            # Resolve conditions from config or infer
+            if self.config.conditions:
+                conditions = self.config.conditions
+            else:
+                conditions = [d for d in sorted(os.listdir(self.config.path))
+                              if os.path.isdir(os.path.join(self.config.path, d))]
             for cond in conditions:
                 paths = sorted(glob(os.path.join(self.config.path, cond, "*.jpg")))
                 all_image_paths.extend(paths)

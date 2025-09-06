@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 import os
 
 @dataclass
@@ -12,6 +12,10 @@ class DatasetConfig:
     images_per_place: int
     image_extension: str = "*.jpg"
     description: str = ""
+    conditions: Optional[List[str]] = None  # list of subfolders representing conditions
+    # Optional grouping parameters for landmark_grouped datasets without unified naming
+    grouping_step_size: Optional[int] = None
+    grouping_group_size: Optional[int] = None
 
 @dataclass
 class ExperimentConfig:
@@ -47,8 +51,33 @@ DATASETS = {
         format="landmark_grouped",
         # These will be determined by the loader, placeholders are fine
         num_places=20, 
-        images_per_place=9,
-        description="A smaller, landmark-style version of Gardens Point (flat structure)."
+        images_per_place=6,
+        description="Mini Gardens Point built via group-and-skip over conditions.",
+        conditions=["day_left", "day_right", "night_right"],
+        grouping_step_size=10,
+        grouping_group_size=3
+    ),
+    "gardens_point_mini_2": DatasetConfig(
+        name="GardensPoint_Mini_2",
+        path="images/GardensPoint_Mini_2/",
+        format="landmark_grouped",
+        num_places=0,
+        images_per_place=0,
+        description="Mini Gardens Point (choose 2, skip 8).",
+        conditions=["day_left", "day_right", "night_right"],
+        grouping_step_size=10,
+        grouping_group_size=2
+    ),
+    "gardens_point_mini_3": DatasetConfig(
+        name="GardensPoint_Mini_3",
+        path="images/GardensPoint_Mini_3/",
+        format="landmark_grouped",
+        num_places=0,
+        images_per_place=0,
+        description="Mini Gardens Point (choose 3, skip 7).",
+        conditions=["day_left", "day_right", "night_right"],
+        grouping_step_size=10,
+        grouping_group_size=3
     ),
     "google_landmarks_micro": DatasetConfig(
         name="GoogleLandmarksMicro",
@@ -64,7 +93,8 @@ DATASETS = {
         format="sequential",
         num_places=0,  # Will be detected automatically
         images_per_place=0,  # Will be detected automatically
-        description="St Lucia small dataset"
+        description="St Lucia small dataset",
+        conditions=["100909_0845", "180809_1545"]
     ),
     "gardens_point": DatasetConfig(
         name="GardensPoint",
@@ -72,7 +102,8 @@ DATASETS = {
         format="sequential",
         num_places=0,  # Will be detected automatically
         images_per_place=0,  # Will be detected automatically
-        description="Gardens Point dataset"
+        description="Gardens Point dataset",
+        conditions=["day_left", "day_right", "night_right"]
     ),
     "sfu": DatasetConfig(
         name="SFU",
@@ -80,7 +111,8 @@ DATASETS = {
         format="sequential",
         num_places=0,  # Will be detected automatically
         images_per_place=0,  # Will be detected automatically
-        description="SFU dataset"
+        description="SFU dataset",
+        conditions=["dry", "jan"]
     ),
     "tokyo247": DatasetConfig(
         name="Tokyo247",

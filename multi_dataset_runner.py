@@ -203,8 +203,8 @@ def main():
     parser.add_argument('--threshold-multiplier', type=float, default=1.0,
                        help='Multiplier for threshold adjustment (< 1.0 = more lenient, default: 1.0)')
     parser.add_argument('--threshold-method', type=str, default="original",
-                               choices=["original"],
-                       help='Threshold calculation method (default: original)')
+                               choices=["original", "legacy_mean_bad"],
+                       help='Threshold calculation method (default: original; legacy_mean_bad to match old behavior)')
     
     args = parser.parse_args()
     

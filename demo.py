@@ -54,57 +54,71 @@ def apply_per_place_thresholds(S, db_place_ids, q_place_ids, place_thresholds):
     return M
 
 def get_place_ids_from_paths(paths):
-    """Extracts place ID from a list of file paths as a string (e.g., 'p0')."""
+    """Extracts place ID from filenames. Supports ImageNNN.jpg and Place####_*.jpg patterns."""
     place_ids = []
     for path in paths:
+        filename = os.path.basename(path)
+        # Prefer unified Place#### naming if present
+        if filename.lower().startswith('place'):
+            token = filename.split('_', 1)[0]  # Place####
+            try:
+                place_num = int(token[5:])
+                place_ids.append(f"p{place_num}")
+                continue
+            except Exception:
+                pass
+        # Fallback to ImageNNN grouping
         try:
-            filename = os.path.basename(path)
             img_num = int(filename.replace('Image', '').replace('.jpg', ''))
             place_id_num = img_num // 10
             place_ids.append(f"p{place_id_num}")
-        except (ValueError, IndexError):
-            place_ids.append("p-1") # Invalid place ID
+        except Exception:
+            place_ids.append("p-1")
     return place_ids
 
 def main():
     parser = argparse.ArgumentParser(description='Visual Place Recognition: A Tutorial. Code repository supplementing our paper.')
-    parser.add_argument('--descriptor', type=str, default='HDC-DELF', choices=['HDC-DELF', 'AlexNet', 'NetVLAD', 'PatchNetVLAD', 'CosPlace', 'EigenPlaces', 'SAD'], help='Select descriptor (default: HDC-DELF)')
-    parser.add_argument('--dataset', type=str, default='GardensPoint', choices=['GardensPoint', 'GardensPoint_Mini', 'StLucia', 'SFU', 'Tokyo247'], help='Select dataset (default: GardensPoint)')
+    parser.add_argument('--descriptor', type=lambda s: s.lower(), default='eigenplaces', choices=['hdc-delf', 'alexnet', 'netvlad', 'patchnetvlad', 'cosplace', 'eigenplaces', 'sad'], help='Select descriptor (case-insensitive; default: hdc-delf)')
+    parser.add_argument('--dataset', type=lambda s: s.lower(), default='gardenspoint', choices=['gardenspoint', 'gardenspoint_mini', 'gardenspoint_mini_2', 'gardenspoint_mini_3', 'stlucia', 'sfu', 'tokyo247'], help='Select dataset (case-insensitive; default: gardenspoint)')
     args = parser.parse_args()
 
     print('========== Start VPR with {} descriptor on dataset {}'.format(args.descriptor, args.dataset))
 
     # load dataset
     print('===== Load dataset')
-    if args.dataset == 'GardensPoint':
+    if args.dataset == 'gardenspoint':
         dataset = GardensPointDataset()
-    elif args.dataset == 'GardensPoint_Mini':
+    elif args.dataset == 'gardenspoint_mini':
         # We can reuse the original loader
         dataset = GardensPointDataset(destination='images/GardensPoint_Mini/')
-    elif args.dataset == 'StLucia':
+    elif args.dataset == 'gardenspoint_mini_2':
+        dataset = GardensPointDataset(destination='images/GardensPoint_Mini_2/')
+    elif args.dataset == 'gardenspoint_mini_3':
+        dataset = GardensPointDataset(destination='images/GardensPoint_Mini_3/')
+    elif args.dataset == 'stlucia':
         dataset = StLuciaDataset()
-    elif args.dataset == 'SFU':
+    elif args.dataset == 'sfu':
         dataset = SFUDataset()
-    elif args.dataset == 'Tokyo247':
+    elif args.dataset == 'tokyo247':
         dataset = Tokyo247Dataset()
     else:
         raise ValueError('Unknown dataset: ' + args.dataset)
 
     imgs_db, imgs_q, GThard, GTsoft = dataset.load()
 
-    if args.descriptor == 'HDC-DELF':
+    if args.descriptor == 'hdc-delf':
         from feature_extraction.feature_extractor_holistic import HDCDELF
         feature_extractor = HDCDELF()
-    elif args.descriptor == 'AlexNet':
+    elif args.descriptor == 'alexnet':
         from feature_extraction.feature_extractor_holistic import AlexNetConv3Extractor
         feature_extractor = AlexNetConv3Extractor()
-    elif args.descriptor == 'SAD':
+    elif args.descriptor == 'sad':
         from feature_extraction.feature_extractor_holistic import SAD
         feature_extractor = SAD()
-    elif args.descriptor == 'NetVLAD' or args.descriptor == 'PatchNetVLAD':
+    elif args.descriptor == 'netvlad' or args.descriptor == 'patchnetvlad':
         from feature_extraction.feature_extractor_patchnetvlad import PatchNetVLADFeatureExtractor
         from patchnetvlad.tools import PATCHNETVLAD_ROOT_DIR
-        if args.descriptor == 'NetVLAD':
+        if args.descriptor == 'netvlad':
             configfile = os.path.join(PATCHNETVLAD_ROOT_DIR, 'configs/netvlad_extract.ini')
         else:
             configfile = os.path.join(PATCHNETVLAD_ROOT_DIR, 'configs/speed.ini')
@@ -112,16 +126,16 @@ def main():
         config = configparser.ConfigParser()
         config.read(configfile)
         feature_extractor = PatchNetVLADFeatureExtractor(config)
-    elif args.descriptor == 'CosPlace':
+    elif args.descriptor == 'cosplace':
         from feature_extraction.feature_extractor_cosplace import CosPlaceFeatureExtractor
         feature_extractor = CosPlaceFeatureExtractor()
-    elif args.descriptor == 'EigenPlaces':
+    elif args.descriptor == 'eigenplaces':
         from feature_extraction.feature_extractor_eigenplaces import EigenPlacesFeatureExtractor
         feature_extractor = EigenPlacesFeatureExtractor()
     else:
         raise ValueError('Unknown dataset: ' + args.descriptor)
 
-    if args.descriptor != 'PatchNetVLAD' and args.descriptor != 'SAD':
+    if args.descriptor != 'patchnetvlad' and args.descriptor != 'sad':
         print('===== Compute reference set descriptors')
         db_D_holistic = feature_extractor.compute_features(imgs_db)
         print('===== Compute query set descriptors')
@@ -132,7 +146,7 @@ def main():
         db_D_holistic = db_D_holistic / np.linalg.norm(db_D_holistic , axis=1, keepdims=True)
         q_D_holistic = q_D_holistic / np.linalg.norm(q_D_holistic , axis=1, keepdims=True)
         S = np.matmul(db_D_holistic , q_D_holistic.transpose())
-    elif args.descriptor == 'SAD':
+    elif args.descriptor == 'sad':
         print('===== Compute reference set descriptors')
         db_D_holistic = feature_extractor.compute_features(imgs_db)
         print('===== Compute query set descriptors')
@@ -191,10 +205,19 @@ def main():
     ax2.set_title('Thresholding S>=thresh')
 
     # Preload thresholds for Recall@K evaluation
-    thresholds_path = "results/GardensPoint_Mini/place_averages.csv"
+    if args.dataset == 'gardenspoint_mini_2':
+        thresholds_path = "results/GardensPoint_Mini_2/place_averages.csv"
+    elif args.dataset == 'gardenspoint_mini':
+        thresholds_path = "results/GardensPoint_Mini/place_averages.csv"
+    elif args.dataset == 'gardenspoint_mini_3':
+        thresholds_path = "results/GardensPoint_Mini_3/place_averages.csv"
+    else:
+        thresholds_path = "results/GardensPoint/place_averages.csv"
     if os.path.exists(thresholds_path):
         print(f"\nLoading thresholds from: {thresholds_path}")
         df_thresholds = pd.read_csv(thresholds_path)
+        # Normalize column names to lowercase for consistency
+        df_thresholds.columns = [c.lower() for c in df_thresholds.columns]
         db_place_ids = get_place_ids_from_paths(dataset.db_paths)
         q_place_ids = get_place_ids_from_paths(dataset.q_paths)
     else:
@@ -239,6 +262,7 @@ def calculate_recall_at_k_with_filtering(S, GThard, db_place_ids, q_place_ids, p
     """
     num_queries = S.shape[1]
     correct_at_k = {k: 0 for k in ks}
+    valid_query_count = 0
     
     # Pre-compute mapping from DB index to place ID
     db_idx_to_place = {i: pid for i, pid in enumerate(db_place_ids)}
@@ -248,6 +272,7 @@ def calculate_recall_at_k_with_filtering(S, GThard, db_place_ids, q_place_ids, p
         gt_db_indices = np.where(GThard[:, q_idx])[0]
         if len(gt_db_indices) == 0:
             continue # Skip queries with no correct match in DB
+        valid_query_count += 1
         
         correct_place_ids = set(db_idx_to_place[i] for i in gt_db_indices)
 
@@ -286,8 +311,9 @@ def calculate_recall_at_k_with_filtering(S, GThard, db_place_ids, q_place_ids, p
             if not top_k_places.isdisjoint(correct_place_ids):
                 correct_at_k[k] += 1
     
-    # Calculate final recall percentages
-    recall_results = {k: (count / num_queries) * 100 for k, count in correct_at_k.items()}
+    # Calculate final recall percentages using only queries with GT matches (aligns with baseline)
+    denom = valid_query_count if valid_query_count > 0 else 1
+    recall_results = {k: (count / denom) * 100 for k, count in correct_at_k.items()}
     return recall_results
 
 def print_recall_at_k_results(results):
