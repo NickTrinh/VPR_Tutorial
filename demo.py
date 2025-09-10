@@ -19,6 +19,8 @@
 import argparse
 import configparser
 import os
+import csv
+from datetime import datetime
 
 from evaluation.metrics import recallAtK
 from evaluation import show_correct_and_wrong_matches
@@ -236,6 +238,7 @@ def main():
     for k in [1, 3, 5]:
         R_at_K_baseline[k] = recallAtK(S, GThard, K=k) * 100 # Convert to percentage
     print_recall_at_k_results(R_at_K_baseline)
+    save_recall_results_csv(args.dataset, args.descriptor, 'baseline', R_at_K_baseline)
     
     # --- Our Methods (Per-Place Thresholds with Filtering) ---
     if os.path.exists(thresholds_path):
@@ -244,12 +247,14 @@ def main():
         print("\n--- Method 2: Simple Average (Filter-then-Rank) ---")
         R_at_K_simple = calculate_recall_at_k_with_filtering(S, GThard, db_place_ids, q_place_ids, per_place_thresholds=simple_avg_thresholds)
         print_recall_at_k_results(R_at_K_simple)
+        save_recall_results_csv(args.dataset, args.descriptor, 'simple_avg_thresholds', R_at_K_simple)
 
         # --- Method 3: Weighted Average Per-Place Thresholds ---
         weighted_avg_thresholds = df_thresholds.set_index('place')['weighted_avg_threshold'].to_dict()
         print("\n--- Method 3: Weighted Average (Filter-then-Rank) ---")
         R_at_K_weighted = calculate_recall_at_k_with_filtering(S, GThard, db_place_ids, q_place_ids, per_place_thresholds=weighted_avg_thresholds)
         print_recall_at_k_results(R_at_K_weighted)
+        save_recall_results_csv(args.dataset, args.descriptor, 'weighted_avg_thresholds', R_at_K_weighted)
     else:
         print("\nSkipping per-place threshold Recall@K evaluation because thresholds file was not found.")
 
@@ -322,5 +327,30 @@ def print_recall_at_k_results(results):
         print(f"Recall@{k}: {recall:.2f}%")
 
 
-if __name__ == '__main__':
+def save_recall_results_csv(dataset_name, descriptor_name, method_name, results_dict):
+    """Append Recall@K results to results/comparison/recall_at_k.csv"""
+    out_dir = os.path.join('results', 'comparison')
+    os.makedirs(out_dir, exist_ok=True)
+    out_file = os.path.join(out_dir, 'recall_at_k.csv')
+
+    file_exists = os.path.exists(out_file)
+    with open(out_file, 'a', newline='') as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(['Timestamp', 'Dataset', 'Descriptor', 'Method', 'Recall@1', 'Recall@3', 'Recall@5'])
+        r1 = results_dict.get(1, '')
+        r3 = results_dict.get(3, '')
+        r5 = results_dict.get(5, '')
+        writer.writerow([
+            datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            dataset_name,
+            descriptor_name,
+            method_name,
+            f"{r1:.2f}" if r1 != '' else '',
+            f"{r3:.2f}" if r3 != '' else '',
+            f"{r5:.2f}" if r5 != '' else ''
+        ])
+
+
+if __name__ == '__main__':  
     main()

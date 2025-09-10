@@ -21,7 +21,7 @@ class VPRExperiment:
     def __init__(self, dataset_config: DatasetConfig, experiment_config: ExperimentConfig, use_cache: bool = True):
         self.dataset_config = dataset_config
         self.experiment_config = experiment_config
-        self.data_loader = DatasetLoader(dataset_config, use_cache=use_cache)
+        self.data_loader = DatasetLoader(dataset_config, use_cache=use_cache, descriptor_name=experiment_config.descriptor)
         self.results_manager = ResultsManager(dataset_config.name, experiment_config.output_dir)
     
     def calculate_scores_for_image(self, img_i: int, img_j: int, 

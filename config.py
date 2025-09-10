@@ -26,6 +26,7 @@ class ExperimentConfig:
     output_dir: str = "results"
     threshold_multiplier: float = 1.0  # Multiplier for threshold adjustment (< 1.0 = more lenient)
     threshold_method: str = "original"  # "original" threshold method
+    descriptor: str = "eigenplaces"  # feature extractor for experiments/tests (eigenplaces|cosplace)
 
 # Dataset configurations
 DATASETS = {

@@ -205,6 +205,9 @@ def main():
     parser.add_argument('--threshold-method', type=str, default="original",
                                choices=["original", "legacy_mean_bad"],
                        help='Threshold calculation method (default: original; legacy_mean_bad to match old behavior)')
+    parser.add_argument('--descriptor', type=str, default="cosplace",
+                        choices=["eigenplaces", "cosplace", "alexnet", "hdc-delf", "sad", "netvlad", "patchnetvlad"],
+                        help='Descriptor to use for experiments/tests (default: cosplace)')
     
     args = parser.parse_args()
     
@@ -216,7 +219,8 @@ def main():
         num_runs=args.num_runs,
         random_seed=args.random_state if args.random_state is not None else 42,
         threshold_multiplier=args.threshold_multiplier,
-        threshold_method=args.threshold_method
+        threshold_method=args.threshold_method,
+        descriptor=args.descriptor
     )
     
     runner = MultiDatasetRunner(experiment_config)

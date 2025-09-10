@@ -8,15 +8,17 @@ from glob import glob
 from typing import List, Tuple, Dict
 from config import DatasetConfig
 from feature_extraction.feature_extractor_eigenplaces import EigenPlacesFeatureExtractor
+from feature_extraction.feature_extractor_cosplace import CosPlaceFeatureExtractor
+from feature_extraction.feature_extractor_holistic import AlexNetConv3Extractor, HDCDELF, SAD
 from datasets.load_dataset import StLuciaDataset, SFUDataset # Import dataset loaders
 from scipy.sparse import csgraph
 
 class DatasetLoader:
     """Utility class for loading and processing datasets"""
     
-    def __init__(self, dataset_config: DatasetConfig, use_cache: bool = True):
+    def __init__(self, dataset_config: DatasetConfig, use_cache: bool = True, descriptor_name: str = "eigenplaces"):
         self.config = dataset_config
-        self.feature_extractor = EigenPlacesFeatureExtractor()
+        self.feature_extractor = self._init_feature_extractor(descriptor_name)
         self.use_cache = use_cache
         self.cache_dir = os.path.join("cache", dataset_config.name)
         self.place_map = [] # Will hold the structure for sequential datasets
@@ -29,6 +31,35 @@ class DatasetLoader:
             self._load_or_generate_place_map()
         elif self.config.format == 'landmark_grouped':
             self._generate_place_map_from_grouped_landmark()
+
+    def _init_feature_extractor(self, name: str):
+        n = (name or "").lower()
+        if n == "cosplace":
+            return CosPlaceFeatureExtractor()
+        if n in ("eigenplaces", "eigenplace"):
+            return EigenPlacesFeatureExtractor()
+        if n == "alexnet":
+            return AlexNetConv3Extractor()
+        if n in ("hdc-delf", "hdcdelf", "hdc_delf"):
+            return HDCDELF()
+        if n == "sad":
+            return SAD()
+        if n in ("netvlad", "patchnetvlad"):
+            try:
+                import os
+                import configparser
+                from patchnetvlad.tools import PATCHNETVLAD_ROOT_DIR
+                from feature_extraction.feature_extractor_patchnetvlad import PatchNetVLADFeatureExtractor
+                if n == "netvlad":
+                    configfile = os.path.join(PATCHNETVLAD_ROOT_DIR, 'configs/netvlad_extract.ini')
+                else:
+                    configfile = os.path.join(PATCHNETVLAD_ROOT_DIR, 'configs/speed.ini')
+                cfg = configparser.ConfigParser()
+                cfg.read(configfile)
+                return PatchNetVLADFeatureExtractor(cfg)
+            except Exception as e:
+                raise ImportError("PatchNetVLAD is not available. Install 'patchnetvlad' and its models, or choose a different --descriptor.") from e
+        return EigenPlacesFeatureExtractor()
     
     def _generate_place_map_from_grouped_landmark(self):
         """
