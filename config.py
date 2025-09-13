@@ -38,6 +38,30 @@ DATASETS = {
         images_per_place=3,
         description="Fordham Places dataset with 11 places, 3 images each"
     ),
+    "nordland_filtered": DatasetConfig(
+        name="NordlandFiltered",
+        path="images/Nordland_filtered/",
+        format="landmark_grouped",
+        num_places=0,
+        images_per_place=0,
+        description="Nordland filtered subset (aligned seasons)",
+        conditions=["spring", "summer", "fall", "winter"],
+        image_extension="*.png",
+        grouping_step_size=1,
+        grouping_group_size=1
+    ),
+    "nordland_mini": DatasetConfig(
+        name="Nordland_Mini",
+        path="images/Nordland_Mini/",
+        format="landmark_grouped",
+        num_places=0,
+        images_per_place=0,
+        description="Nordland mini (group=1, skip=1) built from filtered set",
+        conditions=["spring", "summer", "fall", "winter"],
+        image_extension="*.png",
+        grouping_step_size=1,
+        grouping_group_size=1
+    ),
     "matching_triplets": DatasetConfig(
         name="MatchingTriplets",
         path="images/MatchingTriplets/",

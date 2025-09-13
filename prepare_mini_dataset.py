@@ -120,7 +120,10 @@ def _prepare_conditions_group_and_skip(src_cfg: DatasetConfig, out_base: str,
     # Collect and sort per-condition file lists
     cond_files: List[List[str]] = []
     for cond in conditions:
-        files = sorted(glob(os.path.join(src_cfg.path, cond, '*.jpg')))
+        files = sorted(glob(os.path.join(src_cfg.path, cond, '*.jpg'))) + \
+                sorted(glob(os.path.join(src_cfg.path, cond, '*.jpeg'))) + \
+                sorted(glob(os.path.join(src_cfg.path, cond, '*.png')))
+        files = sorted(list(dict.fromkeys(files)))
         cond_files.append(files)
     # Work by index to avoid filename dependency; re-export with unified names
     min_len = min(len(files) for files in cond_files)
@@ -140,7 +143,8 @@ def _prepare_conditions_group_and_skip(src_cfg: DatasetConfig, out_base: str,
             # Export one image per condition with unified names: PlacePPPP_CondCC_GG.jpg
             for c_idx, cond in enumerate(conditions):
                 src_img = cond_files[c_idx][index]
-                dst_name = f"Place{place_count:04d}_Cond{c_idx:02d}_G{g:02d}.jpg"
+                ext = os.path.splitext(src_img)[1].lower() or '.jpg'
+                dst_name = f"Place{place_count:04d}_Cond{c_idx:02d}_G{g:02d}{ext}"
                 dst_path = os.path.join(out_base, cond, dst_name)
                 shutil.copy(src_img, dst_path)
         place_count += 1

@@ -80,13 +80,14 @@ class DatasetLoader:
         # Build a stable list of all image paths per condition and combined
         per_condition_paths: List[List[str]] = []
         for cond in conditions:
-            per_condition_paths.append(sorted(glob(os.path.join(self.config.path, cond, '*.jpg'))))
+            pat = self.config.image_extension or '*.jpg'
+            per_condition_paths.append(sorted(glob(os.path.join(self.config.path, cond, pat))))
         all_image_paths: List[str] = sorted(list(set(p for plist in per_condition_paths for p in plist)))
 
         path_to_idx = {path: i for i, path in enumerate(all_image_paths)}
 
         # Try unified naming first
-        place_pattern = re.compile(r"Place(\d{4})_Cond\d{2}_G\d{2}\.jpg$", re.IGNORECASE)
+        place_pattern = re.compile(r"Place(\d+)_Cond\d{2}_G\d{2}\.(?:jpg|jpeg|png)$", re.IGNORECASE)
         places_dict: Dict[int, List[int]] = {}
         for path in all_image_paths:
             filename = os.path.basename(path)
@@ -320,8 +321,9 @@ class DatasetLoader:
             else:
                 conditions = [d for d in sorted(os.listdir(self.config.path))
                               if os.path.isdir(os.path.join(self.config.path, d))]
+            img_pat = self.config.image_extension or '*.jpg'
             for cond in conditions:
-                paths = sorted(glob(os.path.join(self.config.path, cond, "*.jpg")))
+                paths = sorted(glob(os.path.join(self.config.path, cond, img_pat)))
                 all_image_paths.extend(paths)
             all_image_paths = sorted(list(set(all_image_paths)))
 
