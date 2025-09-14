@@ -25,7 +25,7 @@ from datetime import datetime
 from evaluation.metrics import recallAtK
 from evaluation import show_correct_and_wrong_matches
 from matching import matching
-from datasets.load_dataset import GardensPointDataset, StLuciaDataset, SFUDataset, Tokyo247Dataset
+from datasets.load_dataset import GardensPointDataset, StLuciaDataset, SFUDataset, Tokyo247Dataset, PlaceConditionsDataset
 import numpy as np
 import pandas as pd
 
@@ -81,7 +81,7 @@ def get_place_ids_from_paths(paths):
 def main():
     parser = argparse.ArgumentParser(description='Visual Place Recognition: A Tutorial. Code repository supplementing our paper.')
     parser.add_argument('--descriptor', type=lambda s: s.lower(), default='eigenplaces', choices=['hdc-delf', 'alexnet', 'netvlad', 'patchnetvlad', 'cosplace', 'eigenplaces', 'sad'], help='Select descriptor (case-insensitive; default: hdc-delf)')
-    parser.add_argument('--dataset', type=lambda s: s.lower(), default='gardenspoint', choices=['gardenspoint', 'gardenspoint_mini', 'gardenspoint_mini_2', 'gardenspoint_mini_3', 'stlucia', 'sfu', 'tokyo247'], help='Select dataset (case-insensitive; default: gardenspoint)')
+    parser.add_argument('--dataset', type=lambda s: s.lower(), default='gardenspoint', choices=['gardenspoint', 'gardenspoint_mini', 'gardenspoint_mini_2', 'gardenspoint_mini_3', 'stlucia', 'sfu', 'tokyo247', 'stlucia_mini', 'sfu_mini'], help='Select dataset (case-insensitive; default: gardenspoint)')
     args = parser.parse_args()
 
     print('========== Start VPR with {} descriptor on dataset {}'.format(args.descriptor, args.dataset))
@@ -103,6 +103,10 @@ def main():
         dataset = SFUDataset()
     elif args.dataset == 'tokyo247':
         dataset = Tokyo247Dataset()
+    elif args.dataset == 'stlucia_mini':
+        dataset = PlaceConditionsDataset(destination='images/StLucia_Mini/', db_condition='100909_0845', q_condition='180809_1545')
+    elif args.dataset == 'sfu_mini':
+        dataset = PlaceConditionsDataset(destination='images/SFU_Mini/', db_condition='dry', q_condition='jan')
     else:
         raise ValueError('Unknown dataset: ' + args.dataset)
 
@@ -213,6 +217,10 @@ def main():
         thresholds_path = "results/GardensPoint_Mini/place_averages.csv"
     elif args.dataset == 'gardenspoint_mini_3':
         thresholds_path = "results/GardensPoint_Mini_3/place_averages.csv"
+    elif args.dataset == 'stlucia_mini':
+        thresholds_path = "results/StLucia_Mini/place_averages.csv"
+    elif args.dataset == 'sfu_mini':
+        thresholds_path = "results/SFU_Mini/place_averages.csv"
     else:
         thresholds_path = "results/GardensPoint/place_averages.csv"
     if os.path.exists(thresholds_path):

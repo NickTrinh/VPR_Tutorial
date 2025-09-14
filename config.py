@@ -139,6 +139,17 @@ DATASETS = {
         description="SFU dataset",
         conditions=["dry", "jan"]
     ),
+    "sfu_mini": DatasetConfig(
+        name="SFU_Mini",
+        path="images/SFU_Mini/",
+        format="landmark_grouped",
+        num_places=0,
+        images_per_place=0,
+        description="SFU mini (group=2, skip=2)",
+        conditions=["dry", "jan"],
+        grouping_step_size=2,
+        grouping_group_size=2
+    ),
     "tokyo247": DatasetConfig(
         name="Tokyo247",
         path="mini_VPR_datasets/Tokyo24_7/tokyo247_vpr_format/",
@@ -147,6 +158,18 @@ DATASETS = {
         images_per_place=3,
         image_extension="*.jpg",
         description="Tokyo 24/7 dataset, formatted for VPR experiments"
+    )
+    ,
+    "st_lucia_mini": DatasetConfig(
+        name="StLucia_Mini",
+        path="images/StLucia_Mini/",
+        format="landmark_grouped",
+        num_places=0,
+        images_per_place=0,
+        description="StLucia mini (group=3, skip=10)",
+        conditions=["100909_0845", "180809_1545"],
+        grouping_step_size=10,
+        grouping_group_size=3
     )
 }
 
