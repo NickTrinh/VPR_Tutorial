@@ -282,3 +282,81 @@ class Tokyo247Dataset(Dataset):
         print("Tokyo24/7 dataset is not available for download via this script.")
         print("Please download it manually and use prepare_tokyo247.py to format it.")
         pass
+
+
+class PlaceConditionsDataset(Dataset):
+    def __init__(self, destination: str, db_condition: str, q_condition: str):
+        self.destination = destination
+        self.db_condition = db_condition
+        self.q_condition = q_condition
+        self.db_paths: List[str] = []
+        self.q_paths: List[str] = []
+
+    def load(self) -> Tuple[List[np.ndarray], List[np.ndarray], np.ndarray, np.ndarray]:
+        print(f"===== Load dataset (Place#### across conditions: {self.db_condition} -> {self.q_condition})")
+
+        db_dir = os.path.join(self.destination, self.db_condition)
+        q_dir = os.path.join(self.destination, self.q_condition)
+        if not (os.path.isdir(db_dir) and os.path.isdir(q_dir)):
+            raise FileNotFoundError(f"Expected condition folders at {db_dir} and {q_dir}")
+
+        def list_place_files(folder: str) -> List[str]:
+            files = sorted(glob(os.path.join(folder, 'Place*_Cond*_G*.jpg')))
+            files += sorted(glob(os.path.join(folder, 'Place*_Cond*_G*.png')))
+            return files
+
+        db_files = list_place_files(db_dir)
+        q_files = list_place_files(q_dir)
+        if not db_files or not q_files:
+            raise FileNotFoundError(f"No place files found under {db_dir} or {q_dir}")
+
+        def parse_place_gid(path: str) -> Tuple[int, int]:
+            base = os.path.basename(path)
+            # Expect Place####_CondCC_GGG.ext
+            try:
+                place_part, cond_part, g_part_ext = base.split('_')
+                pid = int(place_part.replace('Place', ''))
+                gid = int(g_part_ext.split('.')[0].replace('G', ''))
+                return pid, gid
+            except Exception:
+                return -1, -1
+
+        def index_by_place(files: List[str]):
+            idx = {}
+            for f in files:
+                pid, gid = parse_place_gid(f)
+                if pid < 0 or gid < 0:
+                    continue
+                if pid not in idx:
+                    idx[pid] = {}
+                idx[pid][gid] = f
+            return idx
+
+        db_idx = index_by_place(db_files)
+        q_idx = index_by_place(q_files)
+
+        common_pids = sorted(set(db_idx.keys()) & set(q_idx.keys()))
+
+        imgs_db: List[np.ndarray] = []
+        imgs_q: List[np.ndarray] = []
+
+        for pid in common_pids:
+            common_g = sorted(set(db_idx[pid].keys()) & set(q_idx[pid].keys()))
+            if not common_g:
+                continue
+            gid = 0 if 0 in common_g else common_g[0]
+            db_path = db_idx[pid][gid]
+            q_path = q_idx[pid][gid]
+            self.db_paths.append(db_path)
+            self.q_paths.append(q_path)
+            imgs_db.append(np.array(Image.open(db_path)))
+            imgs_q.append(np.array(Image.open(q_path)))
+
+        num = min(len(imgs_db), len(imgs_q))
+        imgs_db = imgs_db[:num]
+        imgs_q = imgs_q[:num]
+
+        GThard = np.eye(num).astype('bool')
+        GTsoft = convolve2d(GThard.astype('int'), np.ones((3, 1), 'int'), mode='same').astype('bool')
+
+        return imgs_db, imgs_q, GThard, GTsoft
