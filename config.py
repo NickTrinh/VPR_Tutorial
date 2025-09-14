@@ -62,6 +62,18 @@ DATASETS = {
         grouping_step_size=1,
         grouping_group_size=1
     ),
+    "nordland_mini_2": DatasetConfig(
+        name="Nordland_Mini_2",
+        path="images/Nordland_mini_2/",
+        format="landmark_grouped",
+        num_places=0,
+        images_per_place=0,
+        description="Nordland mini_2 (group=1, skip=10) built from filtered set",
+        conditions=["spring", "summer", "fall", "winter"],
+        image_extension="*.png",
+        grouping_step_size=10,
+        grouping_group_size=1
+    ),
     "matching_triplets": DatasetConfig(
         name="MatchingTriplets",
         path="images/MatchingTriplets/",
@@ -136,18 +148,6 @@ DATASETS = {
         images_per_place=3,
         image_extension="*.jpg",
         description="Tokyo 24/7 dataset, formatted for VPR experiments"
-    )
-    ,
-    "st_lucia_mini": DatasetConfig(
-        name="StLucia_Mini",
-        path="images/StLucia_Mini/",
-        format="landmark_grouped",
-        num_places=0,
-        images_per_place=0,
-        description="StLucia mini (group=3, skip=10)",
-        conditions=["100909_0845", "180809_1545"],
-        grouping_step_size=10,
-        grouping_group_size=3
     )
 }
 

@@ -81,7 +81,7 @@ def get_place_ids_from_paths(paths):
 def main():
     parser = argparse.ArgumentParser(description='Visual Place Recognition: A Tutorial. Code repository supplementing our paper.')
     parser.add_argument('--descriptor', type=lambda s: s.lower(), default='eigenplaces', choices=['hdc-delf', 'alexnet', 'netvlad', 'patchnetvlad', 'cosplace', 'eigenplaces', 'sad'], help='Select descriptor (case-insensitive; default: hdc-delf)')
-    parser.add_argument('--dataset', type=lambda s: s.lower(), default='gardenspoint', choices=['gardenspoint', 'gardenspoint_mini', 'stlucia', 'sfu', 'tokyo247', 'stlucia_mini', 'sfu_mini', 'nordland_mini'], help='Select dataset (case-insensitive; default: gardenspoint)')
+    parser.add_argument('--dataset', type=lambda s: s.lower(), default='gardenspoint', choices=['gardenspoint', 'gardenspoint_mini', 'stlucia', 'sfu', 'tokyo247', 'sfu_mini', 'nordland_mini', 'nordland_mini_2'], help='Select dataset (case-insensitive; default: gardenspoint)')
     args = parser.parse_args()
 
     print('========== Start VPR with {} descriptor on dataset {}'.format(args.descriptor, args.dataset))
@@ -98,13 +98,13 @@ def main():
         dataset = SFUDataset()
     elif args.dataset == 'tokyo247':
         dataset = Tokyo247Dataset()
-    elif args.dataset == 'stlucia_mini':
-        dataset = PlaceConditionsDataset(destination='images/StLucia_Mini/', db_condition='100909_0845', q_condition='180809_1545')
     elif args.dataset == 'sfu_mini':
         dataset = PlaceConditionsDataset(destination='images/SFU_Mini/', db_condition='dry', q_condition='jan')
     elif args.dataset == 'nordland_mini':
         # Use PlaceConditionsDataset to compare two Nordland seasons (default: spring vs winter)
         dataset = PlaceConditionsDataset(destination='images/Nordland_Mini/', db_condition='spring', q_condition='winter')
+    elif args.dataset == 'nordland_mini_2':
+        dataset = PlaceConditionsDataset(destination='images/Nordland_mini_2/', db_condition='spring', q_condition='winter')
     else:
         raise ValueError('Unknown dataset: ' + args.dataset)
 
@@ -211,12 +211,12 @@ def main():
     # Preload thresholds for Recall@K evaluation
     if args.dataset == 'gardenspoint_mini':
         thresholds_path = "results/GardensPoint_Mini/place_averages.csv"
-    elif args.dataset == 'stlucia_mini':
-        thresholds_path = "results/StLucia_Mini/place_averages.csv"
     elif args.dataset == 'sfu_mini':
         thresholds_path = "results/SFU_Mini/place_averages.csv"
     elif args.dataset == 'nordland_mini':
         thresholds_path = "results/Nordland_Mini/place_averages.csv"
+    elif args.dataset == 'nordland_mini_2':
+        thresholds_path = "results/Nordland_Mini_2/place_averages.csv"
     else:
         thresholds_path = "results/GardensPoint/place_averages.csv"
     if os.path.exists(thresholds_path):

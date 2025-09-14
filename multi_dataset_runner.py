@@ -185,7 +185,7 @@ class MultiDatasetRunner:
 def main():
     parser = argparse.ArgumentParser(description='Run VPR experiments on multiple datasets')
     parser.add_argument('--dataset', nargs='+', 
-                       help='Dataset names to process (e.g., fordham_places st_lucia)')
+                       help='Dataset names to process (e.g., fordham_places gardens_point sfu)')
     parser.add_argument('--list', action='store_true', 
                        help='List available datasets')
     parser.add_argument('--experiment-only', action='store_true',
