@@ -82,28 +82,6 @@ DATASETS = {
         grouping_step_size=10,
         grouping_group_size=3
     ),
-    "gardens_point_mini_2": DatasetConfig(
-        name="GardensPoint_Mini_2",
-        path="images/GardensPoint_Mini_2/",
-        format="landmark_grouped",
-        num_places=0,
-        images_per_place=0,
-        description="Mini Gardens Point (choose 2, skip 8).",
-        conditions=["day_left", "day_right", "night_right"],
-        grouping_step_size=10,
-        grouping_group_size=2
-    ),
-    "gardens_point_mini_3": DatasetConfig(
-        name="GardensPoint_Mini_3",
-        path="images/GardensPoint_Mini_3/",
-        format="landmark_grouped",
-        num_places=0,
-        images_per_place=0,
-        description="Mini Gardens Point (choose 3, skip 7).",
-        conditions=["day_left", "day_right", "night_right"],
-        grouping_step_size=10,
-        grouping_group_size=3
-    ),
     "google_landmarks_micro": DatasetConfig(
         name="GoogleLandmarksMicro",
         path="images/GoogleLandmarksMicro/",

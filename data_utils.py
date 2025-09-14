@@ -395,39 +395,30 @@ class DatasetLoader:
         if self.config.format == 'landmark':
             images_per_place = self.config.images_per_place
             for i in range(self.config.num_places):
-                # All possible image indices for this place
                 all_indices = list(range(images_per_place))
-                
-                # Randomly select images for training (default: 2 out of 3)
-                train_size = min(2, images_per_place - 1)  # Leave at least 1 for testing
-                picked_indices = list(np.random.choice(all_indices, size=train_size, replace=False))
+                if images_per_place < 2:
+                    picked_indices = all_indices
+                    test_index = all_indices[0] if all_indices else -1
+                else:
+                    # Select exactly 1 test index; use all remaining for training
+                    test_index = int(np.random.choice(all_indices, size=1, replace=False))
+                    picked_indices = [idx for idx in all_indices if idx != test_index]
                 picked_set.append(picked_indices)
-                
-                # Remaining images for testing
-                remaining_indices = list(set(all_indices) - set(picked_indices))
-                test_index = remaining_indices[0] if remaining_indices else all_indices[-1]
                 test_set.append(test_index)
-                
                 print(f'Place {i}: Train images: {picked_indices}, Test image: {test_index}')
         
         elif self.config.format in ['sequential', 'landmark_grouped']:
             for i, place_images in enumerate(self.place_map):
                 num_images_in_place = len(place_images)
                 all_indices = list(range(num_images_in_place))
-                
                 if num_images_in_place < 2:
-                    # Cannot create a train/test split, use all for training and one for test
                     picked_indices = all_indices
-                    test_index = all_indices[0] if all_indices else -1 # handle empty case
+                    test_index = all_indices[0] if all_indices else -1
                 else:
-                    train_size = min(2, num_images_in_place - 1)
-                    picked_indices = list(np.random.choice(all_indices, size=train_size, replace=False))
-                    remaining_indices = list(set(all_indices) - set(picked_indices))
-                    test_index = remaining_indices[0]
-                
+                    test_index = int(np.random.choice(all_indices, size=1, replace=False))
+                    picked_indices = [idx for idx in all_indices if idx != test_index]
                 picked_set.append(picked_indices)
                 test_set.append(test_index)
-                
                 print(f'Place {i}: Train images: {picked_indices}, Test image: {test_index}')
 
         return picked_set, test_set

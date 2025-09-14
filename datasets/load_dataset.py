@@ -300,8 +300,13 @@ class PlaceConditionsDataset(Dataset):
         if not (os.path.isdir(db_dir) and os.path.isdir(q_dir)):
             raise FileNotFoundError(f"Expected condition folders at {db_dir} and {q_dir}")
 
+        # Reset collected paths on each load
+        self.db_paths = []
+        self.q_paths = []
+
         def list_place_files(folder: str) -> List[str]:
             files = sorted(glob(os.path.join(folder, 'Place*_Cond*_G*.jpg')))
+            files += sorted(glob(os.path.join(folder, 'Place*_Cond*_G*.jpeg')))
             files += sorted(glob(os.path.join(folder, 'Place*_Cond*_G*.png')))
             return files
 
@@ -344,13 +349,14 @@ class PlaceConditionsDataset(Dataset):
             common_g = sorted(set(db_idx[pid].keys()) & set(q_idx[pid].keys()))
             if not common_g:
                 continue
-            gid = 0 if 0 in common_g else common_g[0]
-            db_path = db_idx[pid][gid]
-            q_path = q_idx[pid][gid]
-            self.db_paths.append(db_path)
-            self.q_paths.append(q_path)
-            imgs_db.append(np.array(Image.open(db_path)))
-            imgs_q.append(np.array(Image.open(q_path)))
+            # Pair all available group IDs for this place (align gid k with gid k)
+            for gid in common_g:
+                db_path = db_idx[pid][gid]
+                q_path = q_idx[pid][gid]
+                self.db_paths.append(db_path)
+                self.q_paths.append(q_path)
+                imgs_db.append(np.array(Image.open(db_path)))
+                imgs_q.append(np.array(Image.open(q_path)))
 
         num = min(len(imgs_db), len(imgs_q))
         imgs_db = imgs_db[:num]
@@ -360,3 +366,7 @@ class PlaceConditionsDataset(Dataset):
         GTsoft = convolve2d(GThard.astype('int'), np.ones((3, 1), 'int'), mode='same').astype('bool')
 
         return imgs_db, imgs_q, GThard, GTsoft
+
+    def download(self, destination: str):
+        # Prepared local datasets only; nothing to download here.
+        return

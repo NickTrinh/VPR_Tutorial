@@ -1,0 +1,13 @@
+Timestamp,Dataset,Descriptor,Method,Recall@1,Recall@3,Recall@5
+2025-09-13 16:36:41,gardenspoint_mini,eigenplaces,baseline,61.67,96.67,100.00
+2025-09-13 16:36:41,gardenspoint_mini,eigenplaces,simple_avg_thresholds,93.33,98.33,100.00
+2025-09-13 16:36:41,gardenspoint_mini,eigenplaces,weighted_avg_thresholds,93.33,98.33,100.00
+2025-09-13 16:44:33,gardenspoint_mini,cosplace,baseline,53.33,96.67,96.67
+2025-09-13 16:44:33,gardenspoint_mini,cosplace,simple_avg_thresholds,93.33,96.67,96.67
+2025-09-13 16:44:33,gardenspoint_mini,cosplace,weighted_avg_thresholds,93.33,100.00,100.00
+2025-09-13 16:48:18,gardenspoint_mini,alexnet,baseline,43.33,78.33,88.33
+2025-09-13 16:48:18,gardenspoint_mini,alexnet,simple_avg_thresholds,85.00,96.67,98.33
+2025-09-13 16:48:18,gardenspoint_mini,alexnet,weighted_avg_thresholds,85.00,96.67,98.33
+2025-09-14 03:43:06,stlucia_mini,eigenplaces,baseline,3.33,11.67,13.33
+2025-09-14 03:43:06,stlucia_mini,eigenplaces,simple_avg_thresholds,5.00,21.67,30.00
+2025-09-14 03:43:06,stlucia_mini,eigenplaces,weighted_avg_thresholds,5.00,21.67,30.00
