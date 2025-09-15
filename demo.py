@@ -84,7 +84,6 @@ def main():
     parser.add_argument('--dataset', type=lambda s: s.lower(), default='gardenspoint', choices=['gardenspoint', 'gardenspoint_mini', 'stlucia', 'sfu', 'tokyo247', 'sfu_mini', 'nordland_mini', 'nordland_mini_2', 'nordland_mini_3'], help='Select dataset (case-insensitive; default: gardenspoint)')
     parser.add_argument('--threshold-multiplier', type=float, default=1.0, help='Global multiplier applied to per-place thresholds before filtering (default: 1.0)')
     parser.add_argument('--threshold-multipliers', type=str, default=None, help='Comma-separated list of multipliers; if provided, evaluates all in one run (e.g., "0.8,1.0,1.5,2.0"). Overrides --threshold-multiplier')
-    parser.add_argument('--topk', type=str, default='1,3,5,10', help='Comma-separated list of K values for Recall@K (e.g., "1,5,10,20")')
     args = parser.parse_args()
 
     print('========== Start VPR with {} descriptor on dataset {}'.format(args.descriptor, args.dataset))
@@ -258,14 +257,8 @@ def main():
     # =================================================================================
     print("\n\n===== Recall@K Evaluation =====")
 
-    # Parse list of K values for Recall@K
-    try:
-        ks = [int(x.strip()) for x in args.topk.split(',') if x.strip()]
-        ks = [k for k in ks if k > 0]
-        if not ks:
-            ks = [1, 3, 5, 10]
-    except Exception:
-        ks = [1, 3, 5, 10]
+    # Fixed K values for Recall@K
+    ks = [1, 3, 5, 10]
 
     # --- Method 1: Baseline (Original, Threshold-less Ranking) ---
     print(f"\n--- Method 1: Baseline (Threshold-less Ranking) ---")
@@ -382,10 +375,11 @@ def save_recall_results_csv(dataset_name, descriptor_name, method_name, results_
     with open(out_file, 'a', newline='') as f:
         writer = csv.writer(f)
         if not file_exists:
-            writer.writerow(['Timestamp', 'Dataset', 'Descriptor', 'Method', 'Recall@1', 'Recall@3', 'Recall@5'])
+            writer.writerow(['Timestamp', 'Dataset', 'Descriptor', 'Method', 'Recall@1', 'Recall@3', 'Recall@5', 'Recall@10'])
         r1 = results_dict.get(1, '')
         r3 = results_dict.get(3, '')
         r5 = results_dict.get(5, '')
+        r10 = results_dict.get(10, '')
         writer.writerow([
             datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             dataset_name,
@@ -393,7 +387,8 @@ def save_recall_results_csv(dataset_name, descriptor_name, method_name, results_
             method_name,
             f"{r1:.2f}" if r1 != '' else '',
             f"{r3:.2f}" if r3 != '' else '',
-            f"{r5:.2f}" if r5 != '' else ''
+            f"{r5:.2f}" if r5 != '' else '',
+            f"{r10:.2f}" if r10 != '' else ''
         ])
 
 
