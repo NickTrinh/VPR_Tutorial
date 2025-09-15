@@ -11,7 +11,46 @@ Timestamp,Dataset,Descriptor,Method,Recall@1,Recall@3,Recall@5
 2025-09-14 03:54:46,sfu_mini,eigenplaces,baseline,76.04,89.84,95.83
 2025-09-14 03:54:46,sfu_mini,eigenplaces,simple_avg_thresholds,81.25,94.53,97.40
 2025-09-14 03:54:47,sfu_mini,eigenplaces,weighted_avg_thresholds,81.25,94.53,97.40
-2025-09-14 04:22:47,nordland_mini,eigenplaces,baseline,69.04,83.95,87.53
+2025-09-14 15:03:16,sfu_mini,cosplace,baseline,62.76,81.25,87.24
+2025-09-14 15:03:16,sfu_mini,cosplace,simple_avg_thresholds,70.83,85.16,89.06
+2025-09-14 15:03:16,sfu_mini,cosplace,weighted_avg_thresholds,70.83,84.11,88.02
+2025-09-14 15:23:12,sfu_mini,alexnet,baseline,57.55,70.83,74.74
+2025-09-14 15:23:12,sfu_mini,alexnet,simple_avg_thresholds,63.54,76.04,82.03
+2025-09-14 15:23:13,sfu_mini,alexnet,weighted_avg_thresholds,63.02,75.26,81.25
 2025-09-14 04:51:25,nordland_mini,eigenplaces,baseline,69.04,83.95,87.53
 2025-09-14 05:10:38,nordland_mini,eigenplaces,simple_avg_thresholds,69.04,83.95,87.53
 2025-09-14 05:29:55,nordland_mini,eigenplaces,weighted_avg_thresholds,69.04,83.95,87.53
+
+2025-09-14 14:29:38,nordland_mini_2,eigenplaces,baseline,89.20,94.64,96.05
+2025-09-14 14:29:49,nordland_mini_2,eigenplaces,simple_avg_thresholds,89.20,94.64,96.05
+2025-09-14 14:30:00,nordland_mini_2,eigenplaces,weighted_avg_thresholds,89.20,94.64,96.05
+
+
+2025-09-14 15:32:08,nordland_mini_2,eigenplaces,baseline,89.20,94.64,96.05
+2025-09-14 15:32:17,nordland_mini_2,eigenplaces,simple_avg_thresholds,50.91,51.92,52.21
+2025-09-14 15:32:26,nordland_mini_2,eigenplaces,weighted_avg_thresholds,53.26,54.28,54.53
+2025-09-14 15:58:11,nordland_mini_2,eigenplaces,baseline,89.20,94.64,96.05
+2025-09-14 15:58:20,nordland_mini_2,eigenplaces,simple_avg_thresholds,89.42,94.82,96.30
+2025-09-14 15:58:30,nordland_mini_2,eigenplaces,weighted_avg_thresholds,89.38,94.71,96.27
+2025-09-14 16:01:55,nordland_mini_2,eigenplaces,baseline,89.20,94.64,96.05
+2025-09-14 16:02:04,nordland_mini_2,eigenplaces,simple_avg_thresholds,88.84,93.15,94.06
+2025-09-14 16:02:14,nordland_mini_2,eigenplaces,weighted_avg_thresholds,89.31,93.62,94.60
+2025-09-14 21:58:55,nordland_mini,eigenplaces,baseline,69.04,83.95,87.53
+2025-09-14 22:18:19,nordland_mini,eigenplaces,simple_avg_thresholds,69.04,83.95,87.53
+2025-09-14 22:38:01,nordland_mini,eigenplaces,weighted_avg_thresholds,69.04,83.95,87.53
+2025-09-14 23:30:38,nordland_mini,eigenplaces,baseline,69.04,83.95,87.53
+2025-09-14 23:55:30,nordland_mini,eigenplaces,simple_avg_thresholds_x0.500,69.04,83.95,87.53
+2025-09-15 00:20:31,nordland_mini,eigenplaces,weighted_avg_thresholds_x0.500,69.04,83.95,87.53
+2025-09-15 00:45:58,nordland_mini,eigenplaces,simple_avg_thresholds_x1.000,69.04,83.95,87.53
+2025-09-15 01:07:47,nordland_mini,eigenplaces,weighted_avg_thresholds_x1.000,69.04,83.95,87.53
+2025-09-15 01:25:27,nordland_mini,eigenplaces,simple_avg_thresholds_x1.250,69.04,83.96,87.54
+2025-09-15 01:43:07,nordland_mini,eigenplaces,weighted_avg_thresholds_x1.250,69.04,83.96,87.54
+2025-09-15 10:09:34,nordland_mini,eigenplaces,baseline,69.04,83.95,87.53
+2025-09-15 10:29:12,nordland_mini,eigenplaces,simple_avg_thresholds_x1.000,69.04,83.95,87.53
+2025-09-15 10:48:58,nordland_mini,eigenplaces,weighted_avg_thresholds_x1.000,69.04,83.95,87.53
+2025-09-15 11:14:06,nordland_mini_2,eigenplaces,baseline,89.20,94.64,96.05
+2025-09-15 11:14:16,nordland_mini_2,eigenplaces,simple_avg_thresholds_x1.000,89.20,94.64,96.05
+2025-09-15 11:14:27,nordland_mini_2,eigenplaces,weighted_avg_thresholds_x1.000,89.20,94.64,96.05
+2025-09-15 12:32:19,nordland_mini_3,eigenplaces,baseline,79.95,92.07,94.24
+2025-09-15 12:33:00,nordland_mini_3,eigenplaces,simple_avg_thresholds_x1.000,87.52,93.86,95.43
+2025-09-15 12:33:41,nordland_mini_3,eigenplaces,weighted_avg_thresholds_x1.000,87.52,93.86,95.43

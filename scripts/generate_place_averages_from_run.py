@@ -55,6 +55,89 @@ def load_runs(run_files: List[str]) -> List[Dict[str, Dict[str, float]]]:
     return all_runs
 
 
+def aggregate_by_image(
+    all_runs: List[Dict[str, Dict[str, float]]]
+) -> Dict[str, Dict[str, List[float]]]:
+    # {image: {mean_bad_scores: [...], std_dev_bad_scores: [...], filter_n: [...]}}
+    image_data: Dict[str, Dict[str, List[float]]] = defaultdict(
+        lambda: {"mean_bad_scores": [], "std_dev_bad_scores": [], "filter_n": []}
+    )
+
+    for run in all_runs:
+        for img_key, vals in run.items():
+            image_data[img_key]["mean_bad_scores"].append(vals["mean_bad_scores"])
+            image_data[img_key]["std_dev_bad_scores"].append(vals["std_dev_bad_scores"])
+            image_data[img_key]["filter_n"].append(vals["filter_n"])
+
+    return image_data
+
+
+def compute_image_averages(
+    image_data: Dict[str, Dict[str, List[float]]]
+) -> Dict[str, Dict[str, float]]:
+    image_averages: Dict[str, Dict[str, float]] = {}
+
+    for img_key, data in image_data.items():
+        mean_bads = np.array(data["mean_bad_scores"], dtype=float)
+        std_devs = np.array(data["std_dev_bad_scores"], dtype=float)
+        filter_ns = np.array(data["filter_n"], dtype=float)
+
+        image_averages[img_key] = {
+            "mean_bad_scores": float(np.mean(mean_bads)) if mean_bads.size else 0.0,
+            "std_dev_bad_scores": float(np.mean(std_devs)) if std_devs.size else 0.0,
+            "filter_n": float(np.mean(filter_ns)) if filter_ns.size else 0.0,
+        }
+
+    return image_averages
+
+
+def write_image_averages(dataset_dir: str, image_averages: Dict[str, Dict[str, float]]):
+    out_file = os.path.join(dataset_dir, "image_averages.csv")
+    os.makedirs(dataset_dir, exist_ok=True)
+    with open(out_file, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow([
+            "Image",
+            "Mean Bad Scores",
+            "Std Deviation Bad Scores",
+            "Filter N",
+        ])
+        def key_fn(x: str):
+            # Expect format pX/iY; fallback to raw string ordering
+            try:
+                p, i = x.split("/")
+                return (int(p[1:]), int(i[1:]))
+            except Exception:
+                return (x, 0)
+        for img_key in sorted(image_averages.keys(), key=key_fn):
+            r = image_averages[img_key]
+            writer.writerow([
+                img_key,
+                r["mean_bad_scores"],
+                r["std_dev_bad_scores"],
+                r["filter_n"],
+            ])
+    print(f"Wrote {out_file}")
+
+
+def aggregate_place_from_images(
+    image_averages: Dict[str, Dict[str, float]]
+) -> Dict[str, Dict[str, List[float]]]:
+    # Convert aggregated per-image stats into place buckets
+    place_data: Dict[str, Dict[str, List[float]]] = defaultdict(
+        lambda: {"mean_bad_scores": [], "std_dev_bad_scores": [], "filter_n": []}
+    )
+    for img_key, vals in image_averages.items():
+        try:
+            place = img_key.split("/")[0]
+        except Exception:
+            continue
+        place_data[place]["mean_bad_scores"].append(vals["mean_bad_scores"])
+        place_data[place]["std_dev_bad_scores"].append(vals["std_dev_bad_scores"])
+        place_data[place]["filter_n"].append(vals["filter_n"])
+    return place_data
+
+
 def aggregate_by_place(
     all_runs: List[Dict[str, Dict[str, float]]]
 ) -> Dict[str, Dict[str, List[float]]]:
@@ -153,7 +236,13 @@ def main():
         )
 
     all_runs = load_runs(run_files)
-    place_data = aggregate_by_place(all_runs)
+    # Phase 1: image averages across runs
+    image_data = aggregate_by_image(all_runs)
+    image_averages = compute_image_averages(image_data)
+    write_image_averages(dataset_dir, image_averages)
+
+    # Phase 2: place averages derived from the aggregated image averages
+    place_data = aggregate_place_from_images(image_averages)
     place_averages = compute_place_averages(place_data, method=args.method)
     write_place_averages(dataset_dir, place_averages)
 

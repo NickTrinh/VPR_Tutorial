@@ -74,6 +74,18 @@ DATASETS = {
         grouping_step_size=10,
         grouping_group_size=1
     ),
+    "nordland_mini_3": DatasetConfig(
+        name="Nordland_Mini_3",
+        path="images/Nordland_Mini_3/",
+        format="landmark_grouped",
+        num_places=0,
+        images_per_place=0,
+        description="Nordland mini_3 (group=2, skip=10) built from filtered set",
+        conditions=["spring", "summer", "fall", "winter"],
+        image_extension="*.png",
+        grouping_step_size=10,
+        grouping_group_size=2
+    ),
     "matching_triplets": DatasetConfig(
         name="MatchingTriplets",
         path="images/MatchingTriplets/",

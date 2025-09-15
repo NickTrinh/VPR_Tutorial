@@ -18,9 +18,12 @@ class DatasetLoader:
     
     def __init__(self, dataset_config: DatasetConfig, use_cache: bool = True, descriptor_name: str = "eigenplaces"):
         self.config = dataset_config
-        self.feature_extractor = self._init_feature_extractor(descriptor_name)
+        # Normalize descriptor key for cache names (e.g., eigenplaces, cosplace, alexnet)
+        self._descriptor_key = (descriptor_name or "").lower()
+        self.feature_extractor = self._init_feature_extractor(self._descriptor_key)
         self.use_cache = use_cache
-        self.cache_dir = os.path.join("cache", dataset_config.name)
+        # Cache per dataset and per descriptor, e.g., cache/Nordland_Mini/eigenplaces
+        self.cache_dir = os.path.join("cache", dataset_config.name, self._descriptor_key)
         self.place_map = [] # Will hold the structure for sequential datasets
         
         # Create cache directory if it doesn't exist

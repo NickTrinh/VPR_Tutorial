@@ -81,7 +81,10 @@ def get_place_ids_from_paths(paths):
 def main():
     parser = argparse.ArgumentParser(description='Visual Place Recognition: A Tutorial. Code repository supplementing our paper.')
     parser.add_argument('--descriptor', type=lambda s: s.lower(), default='eigenplaces', choices=['hdc-delf', 'alexnet', 'netvlad', 'patchnetvlad', 'cosplace', 'eigenplaces', 'sad'], help='Select descriptor (case-insensitive; default: hdc-delf)')
-    parser.add_argument('--dataset', type=lambda s: s.lower(), default='gardenspoint', choices=['gardenspoint', 'gardenspoint_mini', 'stlucia', 'sfu', 'tokyo247', 'sfu_mini', 'nordland_mini', 'nordland_mini_2'], help='Select dataset (case-insensitive; default: gardenspoint)')
+    parser.add_argument('--dataset', type=lambda s: s.lower(), default='gardenspoint', choices=['gardenspoint', 'gardenspoint_mini', 'stlucia', 'sfu', 'tokyo247', 'sfu_mini', 'nordland_mini', 'nordland_mini_2', 'nordland_mini_3'], help='Select dataset (case-insensitive; default: gardenspoint)')
+    parser.add_argument('--threshold-multiplier', type=float, default=1.0, help='Global multiplier applied to per-place thresholds before filtering (default: 1.0)')
+    parser.add_argument('--threshold-multipliers', type=str, default=None, help='Comma-separated list of multipliers; if provided, evaluates all in one run (e.g., "0.8,1.0,1.5,2.0"). Overrides --threshold-multiplier')
+    parser.add_argument('--topk', type=str, default='1,3,5,10', help='Comma-separated list of K values for Recall@K (e.g., "1,5,10,20")')
     args = parser.parse_args()
 
     print('========== Start VPR with {} descriptor on dataset {}'.format(args.descriptor, args.dataset))
@@ -105,6 +108,8 @@ def main():
         dataset = PlaceConditionsDataset(destination='images/Nordland_Mini/', db_condition='spring', q_condition='winter')
     elif args.dataset == 'nordland_mini_2':
         dataset = PlaceConditionsDataset(destination='images/Nordland_mini_2/', db_condition='spring', q_condition='winter')
+    elif args.dataset == 'nordland_mini_3':
+        dataset = PlaceConditionsDataset(destination='images/Nordland_Mini_3/', db_condition='spring', q_condition='winter')
     else:
         raise ValueError('Unknown dataset: ' + args.dataset)
 
@@ -217,6 +222,8 @@ def main():
         thresholds_path = "results/Nordland_Mini/place_averages.csv"
     elif args.dataset == 'nordland_mini_2':
         thresholds_path = "results/Nordland_Mini_2/place_averages.csv"
+    elif args.dataset == 'nordland_mini_3':
+        thresholds_path = "results/Nordland_Mini_3/place_averages.csv"
     else:
         thresholds_path = "results/GardensPoint/place_averages.csv"
     if os.path.exists(thresholds_path):
@@ -226,6 +233,21 @@ def main():
         df_thresholds.columns = [c.lower() for c in df_thresholds.columns]
         db_place_ids = get_place_ids_from_paths(dataset.db_paths)
         q_place_ids = get_place_ids_from_paths(dataset.q_paths)
+        # Apply global threshold multiplier for experimentation
+        tm = args.threshold_multiplier if hasattr(args, 'threshold_multiplier') else 1.0
+        if tm <= 0:
+            tm = 1.0
+        # Parse optional list of multipliers to evaluate in one run
+        tms = None
+        if getattr(args, 'threshold_multipliers', None):
+            try:
+                tms = [float(x.strip()) for x in args.threshold_multipliers.split(',') if x.strip()]
+                # Remove non-positive entries
+                tms = [x for x in tms if x > 0]
+            except Exception:
+                tms = None
+        if not tms:
+            tms = [tm]
     else:
         df_thresholds = None
         db_place_ids, q_place_ids = None, None
@@ -236,29 +258,48 @@ def main():
     # =================================================================================
     print("\n\n===== Recall@K Evaluation =====")
 
+    # Parse list of K values for Recall@K
+    try:
+        ks = [int(x.strip()) for x in args.topk.split(',') if x.strip()]
+        ks = [k for k in ks if k > 0]
+        if not ks:
+            ks = [1, 3, 5, 10]
+    except Exception:
+        ks = [1, 3, 5, 10]
+
     # --- Method 1: Baseline (Original, Threshold-less Ranking) ---
     print(f"\n--- Method 1: Baseline (Threshold-less Ranking) ---")
     R_at_K_baseline = {}
-    for k in [1, 3, 5]:
+    for k in ks:
         R_at_K_baseline[k] = recallAtK(S, GThard, K=k) * 100 # Convert to percentage
     print_recall_at_k_results(R_at_K_baseline)
     save_recall_results_csv(args.dataset, args.descriptor, 'baseline', R_at_K_baseline)
     
     # --- Our Methods (Per-Place Thresholds with Filtering) ---
     if os.path.exists(thresholds_path):
-        # --- Method 2: Simple Average Per-Place Thresholds ---
-        simple_avg_thresholds = df_thresholds.set_index('place')['simple_avg_threshold'].to_dict()
-        print("\n--- Method 2: Simple Average (Filter-then-Rank) ---")
-        R_at_K_simple = calculate_recall_at_k_with_filtering(S, GThard, db_place_ids, q_place_ids, per_place_thresholds=simple_avg_thresholds)
-        print_recall_at_k_results(R_at_K_simple)
-        save_recall_results_csv(args.dataset, args.descriptor, 'simple_avg_thresholds', R_at_K_simple)
+        base_simple = df_thresholds.set_index('place')['simple_avg_threshold'].to_dict()
+        base_weighted = df_thresholds.set_index('place')['weighted_avg_threshold'].to_dict()
 
-        # --- Method 3: Weighted Average Per-Place Thresholds ---
-        weighted_avg_thresholds = df_thresholds.set_index('place')['weighted_avg_threshold'].to_dict()
-        print("\n--- Method 3: Weighted Average (Filter-then-Rank) ---")
-        R_at_K_weighted = calculate_recall_at_k_with_filtering(S, GThard, db_place_ids, q_place_ids, per_place_thresholds=weighted_avg_thresholds)
-        print_recall_at_k_results(R_at_K_weighted)
-        save_recall_results_csv(args.dataset, args.descriptor, 'weighted_avg_thresholds', R_at_K_weighted)
+        for mult in tms:
+            # --- Method 2: Simple Average Per-Place Thresholds ---
+            if mult != 1.0:
+                simple_avg_thresholds = {k: v * mult for k, v in base_simple.items()}
+            else:
+                simple_avg_thresholds = base_simple
+            print(f"\n--- Method 2: Simple Average (Filter-then-Rank), multiplier={mult:.3f} ---")
+            R_at_K_simple = calculate_recall_at_k_with_filtering(S, GThard, db_place_ids, q_place_ids, per_place_thresholds=simple_avg_thresholds, ks=ks)
+            print_recall_at_k_results(R_at_K_simple)
+            save_recall_results_csv(args.dataset, args.descriptor, f'simple_avg_thresholds_x{mult:.3f}', R_at_K_simple)
+
+            # --- Method 3: Weighted Average Per-Place Thresholds ---
+            if mult != 1.0:
+                weighted_avg_thresholds = {k: v * mult for k, v in base_weighted.items()}
+            else:
+                weighted_avg_thresholds = base_weighted
+            print(f"\n--- Method 3: Weighted Average (Filter-then-Rank), multiplier={mult:.3f} ---")
+            R_at_K_weighted = calculate_recall_at_k_with_filtering(S, GThard, db_place_ids, q_place_ids, per_place_thresholds=weighted_avg_thresholds, ks=ks)
+            print_recall_at_k_results(R_at_K_weighted)
+            save_recall_results_csv(args.dataset, args.descriptor, f'weighted_avg_thresholds_x{mult:.3f}', R_at_K_weighted)
     else:
         print("\nSkipping per-place threshold Recall@K evaluation because thresholds file was not found.")
 

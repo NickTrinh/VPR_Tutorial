@@ -92,23 +92,129 @@ class VPRExperiment:
             random_state=self.experiment_config.random_seed + run_number
         )
         
-        # Calculate scores for picked images only
-        all_scores = {}
-        
-        for i in range(self.dataset_config.num_places):
-            for j in picked_set[i]:
-                print(f'Computing scores for p{i}/i{j}')
-                scores = self.calculate_scores_for_image(i, j, descriptors_matrix, picked_set, test_set)
-                img_key = f'p{i}/i{j}'
-                all_scores[img_key] = {
-                    'mean_bad_scores': scores.mean_bad_scores,
-                    'std_dev_bad_scores': scores.std_dev_bad_scores,
-                    'filter_n': scores.filter_n
-                }
+        # Calculate scores for picked images only (vectorized across all images)
+        all_scores = self._calculate_scores_vectorized(descriptors_matrix, picked_set, test_set)
         
         # Save results for this run
         self.save_run_results(run_number, all_scores)
         
+        return all_scores
+
+    def _calculate_scores_vectorized(
+        self,
+        descriptors_matrix: np.ndarray,
+        picked_set: List[List[int]],
+        test_set: List[int],
+        batch_size: int = 4096,
+    ) -> Dict[str, Dict[str, float]]:
+        """Vectorized computation of per-image mean_bad, std_bad, and filter_n.
+
+        This replaces the nested Python loops with a single matrix multiply (optionally on GPU)
+        and vectorized statistics, providing large speedups on big datasets.
+        """
+        # Build test matrix (one test image per place)
+        test_features_list: List[np.ndarray] = []
+        for place_index in range(self.dataset_config.num_places):
+            test_img_index = test_set[place_index]
+            feat = descriptors_matrix[place_index, test_img_index]
+            feat = feat.reshape(-1) if feat.ndim > 1 else feat
+            test_features_list.append(feat)
+        test_matrix = np.stack(test_features_list, axis=0).astype(np.float32)
+        # L2 normalize rows
+        test_norms = np.linalg.norm(test_matrix, axis=1, keepdims=True) + 1e-12
+        test_matrix = test_matrix / test_norms
+
+        # Build train matrix (all picked images) and bookkeeping
+        train_features_list: List[np.ndarray] = []
+        train_place_indices: List[int] = []
+        image_keys: List[str] = []
+        for place_index in range(self.dataset_config.num_places):
+            for img_idx in picked_set[place_index]:
+                feat = descriptors_matrix[place_index, img_idx]
+                feat = feat.reshape(-1) if feat.ndim > 1 else feat
+                train_features_list.append(feat)
+                train_place_indices.append(place_index)
+                image_keys.append(f'p{place_index}/i{img_idx}')
+        if not train_features_list:
+            return {}
+
+        train_matrix = np.stack(train_features_list, axis=0).astype(np.float32)
+        train_norms = np.linalg.norm(train_matrix, axis=1, keepdims=True) + 1e-12
+        train_matrix = train_matrix / train_norms
+
+        num_train = train_matrix.shape[0]
+        num_places = test_matrix.shape[0]
+        num_bad = max(num_places - 1, 1)
+
+        # Prepare outputs
+        mean_bad_all = np.empty((num_train,), dtype=np.float32)
+        std_bad_all = np.empty((num_train,), dtype=np.float32)
+        filter_n_all = np.empty((num_train,), dtype=np.float32)
+
+        # Try GPU via PyTorch for big speedups; fallback to NumPy if not available
+        use_torch = False
+        try:
+            import torch  # type: ignore
+            use_torch = torch.cuda.is_available()
+        except Exception:
+            use_torch = False
+
+        if use_torch:
+            import torch  # type: ignore
+            device = torch.device('cuda')
+            test_t = torch.from_numpy(test_matrix).to(device)
+            for start in range(0, num_train, batch_size):
+                end = min(start + batch_size, num_train)
+                batch = torch.from_numpy(train_matrix[start:end]).to(device)
+                # Similarity matrix for this batch: (B, P)
+                s_batch = torch.matmul(batch, test_t.T)
+                # Row stats
+                sum_all = torch.sum(s_batch, dim=1)
+                sumsq_all = torch.sum(s_batch * s_batch, dim=1)
+                # Gather good score at the correct place column per row
+                place_idx_tensor = torch.tensor(train_place_indices[start:end], device=device, dtype=torch.long)
+                good = s_batch[torch.arange(end - start, device=device), place_idx_tensor]
+                mean_bad = (sum_all - good) / num_bad
+                var_bad = (sumsq_all - good * good) / num_bad - mean_bad * mean_bad
+                var_bad = torch.clamp(var_bad, min=0.0)
+                std_bad = torch.sqrt(var_bad + 1e-12)
+                # Original filter_n approximation (vectorized)
+                raw_n = (good - mean_bad) / (std_bad + 1e-12)
+                raw_n = torch.floor(raw_n)
+                raw_n = torch.clamp(raw_n, min=0.0, max=100.0)
+                mean_bad_all[start:end] = mean_bad.detach().cpu().numpy().astype(np.float32)
+                std_bad_all[start:end] = std_bad.detach().cpu().numpy().astype(np.float32)
+                filter_n_all[start:end] = raw_n.detach().cpu().numpy().astype(np.float32)
+                # Free GPU memory for next batch
+                del batch, s_batch, sum_all, sumsq_all, place_idx_tensor, good, mean_bad, var_bad, std_bad, raw_n
+                torch.cuda.empty_cache()
+        else:
+            test_t = test_matrix.T  # (D, P)
+            for start in range(0, num_train, batch_size):
+                end = min(start + batch_size, num_train)
+                batch = train_matrix[start:end]  # (B, D)
+                s_batch = np.matmul(batch, test_t)  # (B, P)
+                sum_all = np.sum(s_batch, axis=1)
+                sumsq_all = np.sum(s_batch * s_batch, axis=1)
+                good = s_batch[np.arange(end - start), np.array(train_place_indices[start:end])]
+                mean_bad = (sum_all - good) / num_bad
+                var_bad = (sumsq_all - good * good) / num_bad - mean_bad * mean_bad
+                var_bad[var_bad < 0.0] = 0.0
+                std_bad = np.sqrt(var_bad + 1e-12)
+                raw_n = np.floor((good - mean_bad) / (std_bad + 1e-12))
+                raw_n = np.clip(raw_n, 0.0, 100.0)
+                mean_bad_all[start:end] = mean_bad.astype(np.float32)
+                std_bad_all[start:end] = std_bad.astype(np.float32)
+                filter_n_all[start:end] = raw_n.astype(np.float32)
+
+        # Assemble the expected results dict
+        all_scores: Dict[str, Dict[str, float]] = {}
+        for idx, img_key in enumerate(image_keys):
+            all_scores[img_key] = {
+                'mean_bad_scores': float(mean_bad_all[idx]),
+                'std_dev_bad_scores': float(std_bad_all[idx]),
+                'filter_n': float(filter_n_all[idx])
+            }
         return all_scores
     
     def run_multiple_experiments(self) -> Tuple[Dict, Dict]:
