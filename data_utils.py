@@ -349,20 +349,33 @@ class DatasetLoader:
                 # Use the master path list to find the correct path for the index
                 paths_to_compute.append(all_image_paths[idx])
 
-        # Compute features in a single batch for all images that are not cached
+        # Compute features in chunks to avoid OOM for large image sets
         if paths_to_compute:
-            print(f"Computing features for {len(paths_to_compute)} images...")
-            images = [np.array(Image.open(p)) for p in paths_to_compute]
-            computed_features = self.feature_extractor.compute_features(images)
-            
-            # Add computed features to cache and to our lookup dictionary
-            for i, idx in enumerate(images_to_compute):
-                descriptor = computed_features[i:i+1, :] # Keep dimensions
-                cached_descriptors[idx] = descriptor
-                if self.use_cache:
-                    cache_path = os.path.join(self.cache_dir, f"img_{idx}_descriptor.pkl")
-                    with open(cache_path, 'wb') as f:
-                        pickle.dump({'descriptor': descriptor}, f)
+            total = len(paths_to_compute)
+            chunk_size = int(os.environ.get('VPR_FEAT_BATCH', '256'))
+            print(f"Computing features for {total} images in chunks of {chunk_size}...")
+            for start in range(0, total, chunk_size):
+                end = min(start + chunk_size, total)
+                batch_paths = paths_to_compute[start:end]
+                batch_indices = images_to_compute[start:end]
+                images_batch = [np.array(Image.open(p)) for p in batch_paths]
+                feats = self.feature_extractor.compute_features(images_batch)
+                # Ensure numpy array
+                try:
+                    import torch as _t  # type: ignore
+                    if hasattr(feats, 'detach'):
+                        feats = feats.detach().cpu().numpy()
+                except Exception:
+                    pass
+                for j, idx in enumerate(batch_indices):
+                    descriptor = feats[j:j+1, :]
+                    cached_descriptors[idx] = descriptor
+                    if self.use_cache:
+                        cache_path = os.path.join(self.cache_dir, f"img_{idx}_descriptor.pkl")
+                        with open(cache_path, 'wb') as f:
+                            pickle.dump({'descriptor': descriptor}, f)
+                # free batch
+                del images_batch, feats
 
         # Now, populate the descriptors_matrix from our cached/computed descriptors
         max_images_per_place = self.config.images_per_place

@@ -86,6 +86,66 @@ DATASETS = {
         grouping_step_size=10,
         grouping_group_size=2
     ),
+    "nordland_mini_g2s2": DatasetConfig(
+        name="Nordland_Mini_g2s2",
+        path="images/Nordland_Mini_g2s2/",
+        format="landmark_grouped",
+        num_places=0,
+        images_per_place=0,
+        description="Nordland mini (group=2, step=2)",
+        conditions=["spring", "summer", "fall", "winter"],
+        image_extension="*.png",
+        grouping_step_size=2,
+        grouping_group_size=2
+    ),
+    "nordland_mini_g3s3": DatasetConfig(
+        name="Nordland_Mini_g3_s3",
+        path="images/Nordland_Mini_g3_s3/",
+        format="landmark_grouped",
+        num_places=0,
+        images_per_place=0,
+        description="Nordland mini (group=3, step=3)",
+        conditions=["spring", "summer", "fall", "winter"],
+        image_extension="*.png",
+        grouping_step_size=3,
+        grouping_group_size=3
+    ),
+    "nordland_mini_g3s5": DatasetConfig(
+        name="Nordland_Mini_g3s5",
+        path="images/Nordland_Mini_g3s5/",
+        format="landmark_grouped",
+        num_places=0,
+        images_per_place=0,
+        description="Nordland mini (group=3, step=5)",
+        conditions=["spring", "summer", "fall", "winter"],
+        image_extension="*.png",
+        grouping_step_size=5,
+        grouping_group_size=3
+    ),
+    "nordland_mini_g3s10": DatasetConfig(
+        name="Nordland_Mini_g3s10",
+        path="images/Nordland_Mini_g3s10/",
+        format="landmark_grouped",
+        num_places=0,
+        images_per_place=0,
+        description="Nordland mini (group=3, step=10)",
+        conditions=["spring", "summer", "fall", "winter"],
+        image_extension="*.png",
+        grouping_step_size=10,
+        grouping_group_size=3
+    ),
+    "nordland_mini_g2s10": DatasetConfig(
+        name="Nordland_Mini_g2s10",
+        path="images/Nordland_Mini_g2s10/",
+        format="landmark_grouped",
+        num_places=0,
+        images_per_place=0,
+        description="Nordland mini (group=2, step=10)",
+        conditions=["spring", "summer", "fall", "winter"],
+        image_extension="*.png",
+        grouping_step_size=10,
+        grouping_group_size=2
+    ),
     "matching_triplets": DatasetConfig(
         name="MatchingTriplets",
         path="images/MatchingTriplets/",

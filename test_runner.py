@@ -73,10 +73,12 @@ class ThresholdDataLoader:
 class VPRTester:
     """Main class for testing VPR performance on different datasets"""
     
-    def __init__(self, dataset_config: DatasetConfig, use_cache: bool = True):
+    def __init__(self, dataset_config: DatasetConfig, use_cache: bool = True, descriptor_name: str = "eigenplaces"):
         self.dataset_config = dataset_config
-        self.data_loader = DatasetLoader(dataset_config, use_cache=use_cache)
-        self.results_manager = ResultsManager(dataset_config.name)
+        self.data_loader = DatasetLoader(dataset_config, use_cache=use_cache, descriptor_name=descriptor_name)
+        # Read thresholds and write test outputs under results/<DatasetName>/<descriptor>/
+        subdir = os.path.join(dataset_config.name, descriptor_name)
+        self.results_manager = ResultsManager(subdir)
         self.threshold_loader = ThresholdDataLoader(self.results_manager)
     
     def setup_test_data(self, random_state: int = None) -> Tuple[np.ndarray, List[List[int]], List[int]]:

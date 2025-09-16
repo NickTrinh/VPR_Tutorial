@@ -207,23 +207,24 @@ def main():
                        help='Threshold calculation method (default: original; legacy_mean_bad to match old behavior)')
     parser.add_argument('--descriptor', type=str, default="cosplace",
                         choices=["eigenplaces", "cosplace", "alexnet", "hdc-delf", "sad", "netvlad", "patchnetvlad"],
-                        help='Descriptor to use for experiments/tests (default: cosplace)')
+                        help='Single descriptor to use (default: cosplace)')
+    parser.add_argument('--descriptors', type=str, default=None,
+                        help='Comma-separated list of descriptors to run sequentially (e.g., eigenplaces,cosplace)')
     
     args = parser.parse_args()
     
     # Determine cache usage
     use_cache = not args.no_cache
     
-    # Create experiment configuration
-    experiment_config = ExperimentConfig(
-        num_runs=args.num_runs,
-        random_seed=args.random_state if args.random_state is not None else 42,
-        threshold_multiplier=args.threshold_multiplier,
-        threshold_method=args.threshold_method,
-        descriptor=args.descriptor
-    )
-    
-    runner = MultiDatasetRunner(experiment_config)
+    # Resolve descriptor list
+    allowed_desc = {"eigenplaces", "cosplace", "alexnet", "hdc-delf", "sad", "netvlad", "patchnetvlad"}
+    if args.descriptors:
+        desc_list = [d.strip().lower() for d in args.descriptors.split(',') if d.strip()]
+        desc_list = [d for d in desc_list if d in allowed_desc]
+        if not desc_list:
+            desc_list = [args.descriptor]
+    else:
+        desc_list = [args.descriptor]
     
     if args.list:
         runner.list_available_datasets()
@@ -233,16 +234,17 @@ def main():
         print("No datasets specified. Use --list to see available datasets.")
         return
     
-    # Clear cache if requested
+    # Clear cache if requested (per descriptor)
     if args.clear_cache:
         from data_utils import DatasetLoader
         for dataset_name in args.dataset:
-            try:
-                dataset_config = get_dataset_config(dataset_name)
-                loader = DatasetLoader(dataset_config, use_cache=True)
-                loader.clear_cache()
-            except Exception as e:
-                print(f"Error clearing cache for {dataset_name}: {e}")
+            for desc in desc_list:
+                try:
+                    dataset_config = get_dataset_config(dataset_name)
+                    loader = DatasetLoader(dataset_config, use_cache=True, descriptor_name=desc)
+                    loader.clear_cache()
+                except Exception as e:
+                    print(f"Error clearing cache for {dataset_name} ({desc}): {e}")
     
     # Validate dataset names
     valid_datasets = []
@@ -257,17 +259,34 @@ def main():
         return
     
     print(f"Processing datasets: {valid_datasets}")
+    print(f"Descriptors: {desc_list}")
     print(f"Caching enabled: {use_cache}")
     print(f"Random state: {args.random_state if args.random_state is not None else 'random'}")
-    
-    if args.experiment_only:
-        runner.run_experiments_on_datasets(valid_datasets, use_cache)
-    elif args.test_only:
-        runner.test_datasets(valid_datasets, args.random_state, use_cache)
-        runner.save_comparison_report()
-    else:
-        # Run full pipeline
-        runner.run_full_pipeline_on_datasets(valid_datasets, args.random_state, use_cache)
+
+    # Run for each descriptor sequentially
+    for desc in desc_list:
+        print("\n" + "="*80)
+        print(f"Running with descriptor: {desc}")
+        print("="*80)
+        experiment_config = ExperimentConfig(
+            num_runs=args.num_runs,
+            random_seed=args.random_state if args.random_state is not None else 42,
+            threshold_multiplier=args.threshold_multiplier,
+            threshold_method=args.threshold_method,
+            descriptor=desc
+        )
+        runner = MultiDatasetRunner(experiment_config)
+        if args.experiment_only:
+            runner.run_experiments_on_datasets(valid_datasets, use_cache)
+        elif args.test_only:
+            # Ensure tester reads/writes under descriptor subdir
+            from test_runner import test_dataset
+            for dataset_name in valid_datasets:
+                # test_dataset internally constructs its own loader; here we just call it per dataset
+                test_dataset(dataset_name, args.random_state, use_cache)
+            runner.save_comparison_report()
+        else:
+            runner.run_full_pipeline_on_datasets(valid_datasets, args.random_state, use_cache)
 
 if __name__ == "__main__":
     main() 

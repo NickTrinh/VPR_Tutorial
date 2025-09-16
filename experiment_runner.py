@@ -22,7 +22,9 @@ class VPRExperiment:
         self.dataset_config = dataset_config
         self.experiment_config = experiment_config
         self.data_loader = DatasetLoader(dataset_config, use_cache=use_cache, descriptor_name=experiment_config.descriptor)
-        self.results_manager = ResultsManager(dataset_config.name, experiment_config.output_dir)
+        # Save results under results/<DatasetName>/<descriptor>/
+        descriptor_subdir = os.path.join(dataset_config.name, experiment_config.descriptor)
+        self.results_manager = ResultsManager(descriptor_subdir, experiment_config.output_dir)
     
     def calculate_scores_for_image(self, img_i: int, img_j: int, 
                                    descriptors_matrix: np.ndarray, 
@@ -161,33 +163,50 @@ class VPRExperiment:
 
         if use_torch:
             import torch  # type: ignore
+            # Enable fast matmul on modern GPUs
+            try:
+                torch.backends.cuda.matmul.allow_tf32 = True  # type: ignore
+                if hasattr(torch, 'set_float32_matmul_precision'):
+                    torch.set_float32_matmul_precision("high")  # type: ignore
+            except Exception:
+                pass
             device = torch.device('cuda')
-            test_t = torch.from_numpy(test_matrix).to(device)
-            for start in range(0, num_train, batch_size):
-                end = min(start + batch_size, num_train)
-                batch = torch.from_numpy(train_matrix[start:end]).to(device)
-                # Similarity matrix for this batch: (B, P)
-                s_batch = torch.matmul(batch, test_t.T)
-                # Row stats
-                sum_all = torch.sum(s_batch, dim=1)
-                sumsq_all = torch.sum(s_batch * s_batch, dim=1)
-                # Gather good score at the correct place column per row
-                place_idx_tensor = torch.tensor(train_place_indices[start:end], device=device, dtype=torch.long)
-                good = s_batch[torch.arange(end - start, device=device), place_idx_tensor]
-                mean_bad = (sum_all - good) / num_bad
-                var_bad = (sumsq_all - good * good) / num_bad - mean_bad * mean_bad
-                var_bad = torch.clamp(var_bad, min=0.0)
-                std_bad = torch.sqrt(var_bad + 1e-12)
-                # Original filter_n approximation (vectorized)
-                raw_n = (good - mean_bad) / (std_bad + 1e-12)
-                raw_n = torch.floor(raw_n)
-                raw_n = torch.clamp(raw_n, min=0.0, max=100.0)
-                mean_bad_all[start:end] = mean_bad.detach().cpu().numpy().astype(np.float32)
-                std_bad_all[start:end] = std_bad.detach().cpu().numpy().astype(np.float32)
-                filter_n_all[start:end] = raw_n.detach().cpu().numpy().astype(np.float32)
-                # Free GPU memory for next batch
-                del batch, s_batch, sum_all, sumsq_all, place_idx_tensor, good, mean_bad, var_bad, std_bad, raw_n
-                torch.cuda.empty_cache()
+            with torch.inference_mode():
+                test_t = torch.from_numpy(test_matrix).to(device, non_blocking=True)
+                # Try to keep the full train matrix on GPU for best throughput
+                train_t = None
+                try:
+                    train_t = torch.from_numpy(train_matrix).to(device, non_blocking=True)
+                except Exception:
+                    # Fallback: keep on CPU and transfer per batch (slower)
+                    train_cpu = torch.from_numpy(train_matrix).pin_memory()
+                place_idx_all = torch.tensor(train_place_indices, device=device, dtype=torch.long)
+                for start in range(0, num_train, batch_size):
+                    end = min(start + batch_size, num_train)
+                    if train_t is not None:
+                        batch = train_t[start:end]
+                    else:
+                        batch = train_cpu[start:end].to(device, non_blocking=True)
+                    # Similarity matrix for this batch: (B, P)
+                    s_batch = torch.matmul(batch, test_t.T)
+                    # Row stats
+                    sum_all = torch.sum(s_batch, dim=1)
+                    sumsq_all = torch.sum(s_batch * s_batch, dim=1)
+                    # Gather good score at the correct place column per row
+                    good = s_batch[torch.arange(end - start, device=device), place_idx_all[start:end]]
+                    mean_bad = (sum_all - good) / num_bad
+                    var_bad = (sumsq_all - good * good) / num_bad - mean_bad * mean_bad
+                    var_bad = torch.clamp(var_bad, min=0.0)
+                    std_bad = torch.sqrt(var_bad + 1e-12)
+                    # Original filter_n approximation (vectorized)
+                    raw_n = (good - mean_bad) / (std_bad + 1e-12)
+                    raw_n = torch.floor(raw_n)
+                    raw_n = torch.clamp(raw_n, min=0.0, max=100.0)
+                    mean_bad_all[start:end] = mean_bad.detach().cpu().numpy().astype(np.float32)
+                    std_bad_all[start:end] = std_bad.detach().cpu().numpy().astype(np.float32)
+                    filter_n_all[start:end] = raw_n.detach().cpu().numpy().astype(np.float32)
+                    # Free only local references; avoid empty_cache()
+                    del batch, s_batch, sum_all, sumsq_all, good, mean_bad, var_bad, std_bad, raw_n
         else:
             test_t = test_matrix.T  # (D, P)
             for start in range(0, num_train, batch_size):

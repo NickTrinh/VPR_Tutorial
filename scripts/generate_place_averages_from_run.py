@@ -241,8 +241,10 @@ def main():
     image_averages = compute_image_averages(image_data)
     write_image_averages(dataset_dir, image_averages)
 
-    # Phase 2: place averages derived from the aggregated image averages
-    place_data = aggregate_place_from_images(image_averages)
+    # Phase 2: place averages computed the same way as in experiment runs:
+    # aggregate ALL per-image per-run samples first, then compute thresholds.
+    # This matches experiment_runner.calculate_and_save_averages.
+    place_data = aggregate_by_place(all_runs)
     place_averages = compute_place_averages(place_data, method=args.method)
     write_place_averages(dataset_dir, place_averages)
 
