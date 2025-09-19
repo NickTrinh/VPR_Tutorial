@@ -78,6 +78,44 @@ def get_place_ids_from_paths(paths):
             place_ids.append("p-1")
     return place_ids
 
+def compute_features_chunked(feature_extractor, imgs, env_var='VPR_DEMO_FEAT_BATCH', default_chunk=128):
+    """Compute features in chunks to avoid GPU OOM (especially for AlexNet).
+
+    Respects environment variable env_var for initial chunk size and
+    halves the chunk size on CUDA OOM until successful (min 1).
+    """
+    import os as _os
+    import numpy as _np
+    chunk_size = int(_os.environ.get(env_var, default_chunk))
+    n = len(imgs)
+    if n == 0:
+        return _np.empty((0,))
+    results = []
+    i = 0
+    while i < n:
+        end = min(i + chunk_size, n)
+        batch = imgs[i:end]
+        try:
+            feats = feature_extractor.compute_features(batch)
+            if isinstance(feats, list):
+                feats = _np.array(feats)
+            results.append(feats)
+            i = end
+        except Exception as e:
+            msg = str(e).lower()
+            is_oom = ('out of memory' in msg) or ('cuda' in msg and 'memory' in msg)
+            if is_oom and chunk_size > 1:
+                # Back off and retry this batch with smaller chunk
+                chunk_size = max(1, chunk_size // 2)
+                try:
+                    import torch as _torch
+                    _torch.cuda.empty_cache()
+                except Exception:
+                    pass
+                continue
+            raise
+    return _np.vstack(results) if results else _np.empty((0,))
+
 def main():
     parser = argparse.ArgumentParser(description='Visual Place Recognition: A Tutorial. Code repository supplementing our paper.')
     parser.add_argument('--descriptor', type=lambda s: s.lower(), default='eigenplaces', choices=['hdc-delf', 'alexnet', 'netvlad', 'patchnetvlad', 'cosplace', 'eigenplaces', 'sad'], help='Select descriptor (case-insensitive; default: hdc-delf)')
@@ -112,7 +150,7 @@ def main():
     elif args.dataset == 'nordland_mini_g2s2':
         dataset = PlaceConditionsDataset(destination='images/Nordland_Mini_g2s2/', db_condition='spring', q_condition='winter')
     elif args.dataset == 'nordland_mini_g3s3':
-        dataset = PlaceConditionsDataset(destination='images/Nordland_Mini_g3_s3/', db_condition='spring', q_condition='winter')
+        dataset = PlaceConditionsDataset(destination='images/Nordland_Mini_g3s3/', db_condition='spring', q_condition='winter')
     elif args.dataset == 'nordland_mini_g3s5':
         dataset = PlaceConditionsDataset(destination='images/Nordland_Mini_g3_s5/', db_condition='spring', q_condition='winter')
     elif args.dataset == 'nordland_mini_g3s10':
@@ -155,9 +193,9 @@ def main():
 
     if args.descriptor != 'patchnetvlad' and args.descriptor != 'sad':
         print('===== Compute reference set descriptors')
-        db_D_holistic = feature_extractor.compute_features(imgs_db)
+        db_D_holistic = compute_features_chunked(feature_extractor, imgs_db)
         print('===== Compute query set descriptors')
-        q_D_holistic = feature_extractor.compute_features(imgs_q)
+        q_D_holistic = compute_features_chunked(feature_extractor, imgs_q)
 
         # normalize descriptors and compute S-matrix
         print('===== Compute cosine similarities S')
@@ -236,7 +274,7 @@ def main():
     elif args.dataset == 'nordland_mini_g2s2':
         thresholds_path = f"results/Nordland_Mini_g2s2/{args.descriptor}/place_averages.csv"
     elif args.dataset == 'nordland_mini_g3s3':
-        thresholds_path = f"results/Nordland_Mini_g3_s3/{args.descriptor}/place_averages.csv"
+        thresholds_path = f"results/Nordland_Mini_g3s3/{args.descriptor}/place_averages.csv"
     elif args.dataset == 'nordland_mini_g3s5':
         thresholds_path = f"results/Nordland_Mini_g3s5/{args.descriptor}/place_averages.csv"
     elif args.dataset == 'nordland_mini_g3s10':

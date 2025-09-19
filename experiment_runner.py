@@ -1,6 +1,8 @@
 import numpy as np
 import csv
 import os
+import re
+from glob import glob
 from typing import Dict, List, Tuple
 from dataclasses import dataclass
 
@@ -239,16 +241,55 @@ class VPRExperiment:
     def run_multiple_experiments(self) -> Tuple[Dict, Dict]:
         """Run multiple experiments and calculate averages"""
         print(f'Running {self.experiment_config.num_runs} experiments on {self.dataset_config.name}')
-        
-        all_runs_results = []
-        
-        for run_num in range(1, self.experiment_config.num_runs + 1):
+
+        target_runs = self.experiment_config.num_runs
+
+        # Load existing run CSVs to support resume
+        existing_results: List[Dict] = []
+        existing_run_numbers: List[int] = []
+        run_file_re = re.compile(r"test_results_run_(\d+)\.csv$")
+        for fp in sorted(glob(os.path.join(self.results_manager.dataset_dir, 'test_results_run_*.csv'))):
+            m = run_file_re.search(os.path.basename(fp))
+            if not m:
+                continue
+            run_no = int(m.group(1))
+            if run_no > target_runs:
+                continue
+            # Parse CSV into the expected dict format
+            try:
+                with open(fp, 'r', newline='') as f:
+                    reader = csv.DictReader(f)
+                    run_dict: Dict[str, Dict[str, float]] = {}
+                    for row in reader:
+                        img_key = row.get('Image', '').strip()
+                        if not img_key:
+                            continue
+                        run_dict[img_key] = {
+                            'mean_bad_scores': float(row['Mean Bad Scores']),
+                            'std_dev_bad_scores': float(row['Std Deviation Bad Scores']),
+                            'filter_n': float(row['Filter N'])
+                        }
+                existing_results.append(run_dict)
+                existing_run_numbers.append(run_no)
+            except Exception:
+                # Skip corrupted files silently
+                continue
+
+        max_existing = max(existing_run_numbers) if existing_run_numbers else 0
+        if max_existing >= target_runs:
+            print(f"Found existing runs up to {max_existing} (>= target {target_runs}); skipping new runs and recomputing averages.")
+        else:
+            print(f"Resuming from run {max_existing + 1} to {target_runs} (found {len(existing_run_numbers)} existing runs).")
+
+        new_results: List[Dict] = []
+        for run_num in range(max_existing + 1, target_runs + 1):
             run_result = self.run_single_experiment(run_num)
-            all_runs_results.append(run_result)
-        
-        # Calculate and save averages
+            new_results.append(run_result)
+
+        # Calculate and save averages across existing + new runs (up to target_runs)
+        all_runs_results = existing_results + new_results
         image_averages, place_averages = self.calculate_and_save_averages(all_runs_results)
-        
+
         return image_averages, place_averages
     
     def save_run_results(self, run_number: int, results: Dict[str, Dict[str, float]]):

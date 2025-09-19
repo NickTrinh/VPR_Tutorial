@@ -99,8 +99,8 @@ DATASETS = {
         grouping_group_size=2
     ),
     "nordland_mini_g3s3": DatasetConfig(
-        name="Nordland_Mini_g3_s3",
-        path="images/Nordland_Mini_g3_s3/",
+        name="Nordland_Mini_g3s3",
+        path="images/Nordland_Mini_g3s3/",
         format="landmark_grouped",
         num_places=0,
         images_per_place=0,

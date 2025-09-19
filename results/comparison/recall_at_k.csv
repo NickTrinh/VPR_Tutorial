@@ -17,3 +17,20 @@ Timestamp,Dataset,Descriptor,Method,Recall@1,Recall@3,Recall@5,Recall@10
 2025-09-15 16:25:44,sfu_mini,alexnet,baseline,57.55,70.83,74.74,82.55
 2025-09-15 16:25:45,sfu_mini,alexnet,simple_avg_thresholds,62.50,74.74,79.95,86.72
 2025-09-15 16:25:45,sfu_mini,alexnet,weighted_avg_thresholds,62.50,74.74,79.95,86.72
+2025-09-19 01:23:56,nordland_mini_g2s2,eigenplaces,baseline,69.04,83.95,87.53,91.02
+2025-09-19 01:43:44,nordland_mini_g2s2,eigenplaces,simple_avg_thresholds,74.42,86.67,89.69,92.77
+2025-09-19 02:02:50,nordland_mini_g2s2,eigenplaces,weighted_avg_thresholds,74.42,86.67,89.69,92.77
+2025-09-19 01:23:22,nordland_mini_g2s2,cosplace,baseline,68.15,85.99,89.72,93.11
+2025-09-19 01:42:45,nordland_mini_g2s2,cosplace,simple_avg_thresholds,75.26,89.23,92.08,94.74
+2025-09-19 02:02:20,nordland_mini_g2s2,cosplace,weighted_avg_thresholds,75.26,89.23,92.08,94.74
+2025-09-19 02:49:55,nordland_mini_g3s3,eigenplaces,baseline,69.04,83.96,87.54,91.02
+2025-09-19 03:08:13,nordland_mini_g3s3,eigenplaces,simple_avg_thresholds,76.72,87.78,90.65,93.51
+2025-09-19 03:26:37,nordland_mini_g3s3,eigenplaces,weighted_avg_thresholds,76.72,87.78,90.65,93.51
+2025-09-19 12:13:50,nordland_mini_g3s3,cosplace,baseline,68.15,85.99,89.72,93.11
+2025-09-19 12:32:28,nordland_mini_g3s3,cosplace,simple_avg_thresholds,78.21,90.42,92.91,95.43
+2025-09-19 12:51:16,nordland_mini_g3s3,cosplace,weighted_avg_thresholds,78.21,90.42,92.91,95.43
+2025-09-19 12:59:57,nordland_mini_g3s3,alexnet,baseline,39.61,49.31,53.24,58.31
+2025-09-19 13:18:20,nordland_mini_g3s3,alexnet,simple_avg_thresholds,42.85,52.56,56.63,62.24
+2025-09-19 13:36:36,nordland_mini_g3s3,alexnet,weighted_avg_thresholds,42.85,52.56,56.64,62.262025-09-19 15:29:17,nordland_mini_g2s2,alexnet,baseline,39.61,49.31,53.24,58.31
+2025-09-19 15:48:02,nordland_mini_g2s2,alexnet,simple_avg_thresholds,41.77,51.50,55.49,60.85
+2025-09-19 16:06:46,nordland_mini_g2s2,alexnet,weighted_avg_thresholds,41.77,51.51,55.50,60.89
