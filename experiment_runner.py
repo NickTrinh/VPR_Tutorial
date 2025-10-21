@@ -8,6 +8,7 @@ from dataclasses import dataclass
 
 from config import DatasetConfig, ExperimentConfig, get_dataset_config, auto_detect_dataset_structure
 from data_utils import DatasetLoader, ResultsManager, validate_dataset_structure
+from threshold_analysis import print_threshold_component_analysis
 
 @dataclass
 class ScoresStruct:
@@ -378,6 +379,10 @@ class VPRExperiment:
                 'std_dev_of_thresholds': float(np.std(thresholds)),
                 'avg_filter_n': float(np.mean(filter_ns))
             }
+        
+        # ===== Analysis #1: Distribution of filter_n and std_dev =====
+        threshold_method = getattr(self.experiment_config, 'threshold_method', 'original')
+        print_threshold_component_analysis(place_data, threshold_method)
         
         # Save averages
         self.save_image_averages(image_averages)
