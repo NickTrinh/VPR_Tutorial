@@ -101,9 +101,26 @@ def main():
         print("\n[SKIPPED] Step 2: Experiments (using existing results)")
         success_count += 1
     
-    # Step 3: Compare thresholds (Analysis #2)
-    cmd = f"python run_threshold_comparison.py --dataset {args.dataset}"
-    
+    # Step 3: Compare thresholds (Analysis #2) using descriptor-specific paths
+    dataset_map_cmp = {
+        'gardenspoint_mini': 'GardensPoint_Mini',
+        'sfu_mini': 'SFU_Mini',
+        'nordland_mini': 'Nordland_Mini',
+        'nordland_mini_2': 'Nordland_Mini_2',
+        'nordland_mini_3': 'Nordland_Mini_3'
+    }
+    dataset_dir_cmp = dataset_map_cmp.get(args.dataset, args.dataset)
+    legacy_dir = os.path.join('results', f'{dataset_dir_cmp}_legacy', args.descriptor)
+    original_dir = os.path.join('results', dataset_dir_cmp, args.descriptor)
+    output_plot = f'threshold_comparison_{args.dataset}_{args.descriptor}.png'
+    cmd = (
+        f"python run_threshold_comparison.py "
+        f"--dataset {args.dataset} "
+        f"--legacy-dir {legacy_dir} "
+        f"--original-dir {original_dir} "
+        f"--output-plot {output_plot}"
+    )
+
     if run_command(cmd, "Step 3: Analysis #2 - Side-by-Side Threshold Comparison"):
         success_count += 1
     else:
@@ -147,9 +164,9 @@ def main():
     dataset_dir = dataset_map.get(args.dataset, args.dataset)
     
     files_to_check = [
-        (f"results/{dataset_dir}_legacy/place_averages.csv", "Legacy thresholds"),
-        (f"results/{dataset_dir}/place_averages.csv", "Original thresholds"),
-        (f"threshold_comparison_{args.dataset}.png", "Threshold comparison plot"),
+        (f"results/{dataset_dir}_legacy/{args.descriptor}/place_averages.csv", "Legacy thresholds"),
+        (f"results/{dataset_dir}/{args.descriptor}/place_averages.csv", "Original thresholds"),
+        (f"threshold_comparison_{args.dataset}_{args.descriptor}.png", "Threshold comparison plot"),
         (f"threshold_comparison_{args.dataset}.csv", "Threshold comparison data"),
         (f"score_distributions_{args.dataset}_{args.descriptor}.png", "Score distribution plot"),
     ]
