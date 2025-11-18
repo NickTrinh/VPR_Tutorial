@@ -8,7 +8,6 @@ from dataclasses import dataclass
 
 from config import DatasetConfig, ExperimentConfig, get_dataset_config, auto_detect_dataset_structure
 from data_utils import DatasetLoader, ResultsManager, validate_dataset_structure
-from threshold_analysis import print_threshold_component_analysis
 
 @dataclass
 class ScoresStruct:
@@ -245,50 +244,13 @@ class VPRExperiment:
 
         target_runs = self.experiment_config.num_runs
 
-        # Load existing run CSVs to support resume
-        existing_results: List[Dict] = []
-        existing_run_numbers: List[int] = []
-        run_file_re = re.compile(r"test_results_run_(\d+)\.csv$")
-        for fp in sorted(glob(os.path.join(self.results_manager.dataset_dir, 'test_results_run_*.csv'))):
-            m = run_file_re.search(os.path.basename(fp))
-            if not m:
-                continue
-            run_no = int(m.group(1))
-            if run_no > target_runs:
-                continue
-            # Parse CSV into the expected dict format
-            try:
-                with open(fp, 'r', newline='') as f:
-                    reader = csv.DictReader(f)
-                    run_dict: Dict[str, Dict[str, float]] = {}
-                    for row in reader:
-                        img_key = row.get('Image', '').strip()
-                        if not img_key:
-                            continue
-                        run_dict[img_key] = {
-                            'mean_bad_scores': float(row['Mean Bad Scores']),
-                            'std_dev_bad_scores': float(row['Std Deviation Bad Scores']),
-                            'filter_n': float(row['Filter N'])
-                        }
-                existing_results.append(run_dict)
-                existing_run_numbers.append(run_no)
-            except Exception:
-                # Skip corrupted files silently
-                continue
-
-        max_existing = max(existing_run_numbers) if existing_run_numbers else 0
-        if max_existing >= target_runs:
-            print(f"Found existing runs up to {max_existing} (>= target {target_runs}); skipping new runs and recomputing averages.")
-        else:
-            print(f"Resuming from run {max_existing + 1} to {target_runs} (found {len(existing_run_numbers)} existing runs).")
-
-        new_results: List[Dict] = []
-        for run_num in range(max_existing + 1, target_runs + 1):
+        # Run all experiments fresh (no resume)
+        all_runs_results: List[Dict] = []
+        for run_num in range(1, target_runs + 1):
             run_result = self.run_single_experiment(run_num)
-            new_results.append(run_result)
+            all_runs_results.append(run_result)
 
-        # Calculate and save averages across existing + new runs (up to target_runs)
-        all_runs_results = existing_results + new_results
+        # Calculate and save averages
         image_averages, place_averages = self.calculate_and_save_averages(all_runs_results)
 
         return image_averages, place_averages
@@ -358,18 +320,15 @@ class VPRExperiment:
             std_devs = np.array(data['std_dev_bad_scores'])
             filter_ns = np.array(data['filter_n'])
 
-            # Legacy mode: thresholds are mean of bad scores only (no margin)
-            if getattr(self.experiment_config, 'threshold_method', 'original') == 'legacy_mean_bad':
-                thresholds = mean_bads
-            else:
-                # Original (current) mode: per-sample thresholds t_j = mean_bad_j + filter_n_j * std_dev_bad_j
-                thresholds = mean_bads + filter_ns * std_devs
+            # Per-image thresholds are the mean_bad_scores (no margin)
+            thresholds = mean_bads
 
-            # Method 1: Simple average over all t_j
+            # Method 1: Simple average - mean of all per-image thresholds in this place
             simple_avg_threshold = float(np.mean(thresholds))
 
-            # Method 2: Inverse-variance weighted average over all t_j
-            weight_power = 2  # change to 1 to use 1/sd weighting
+            # Method 2: Weighted average - inverse-variance weighted mean
+            # Images with lower std_dev (more stable) get higher weight
+            weight_power = 2  # change to 1 to use 1/sd weighting instead of 1/variance
             weights = 1.0 / (np.power(std_devs, weight_power) + 1e-9)
             weighted_avg_threshold = float(np.sum(weights * thresholds) / np.sum(weights))
 
@@ -379,10 +338,6 @@ class VPRExperiment:
                 'std_dev_of_thresholds': float(np.std(thresholds)),
                 'avg_filter_n': float(np.mean(filter_ns))
             }
-        
-        # ===== Analysis #1: Distribution of filter_n and std_dev =====
-        threshold_method = getattr(self.experiment_config, 'threshold_method', 'original')
-        print_threshold_component_analysis(place_data, threshold_method)
         
         # Save averages
         self.save_image_averages(image_averages)

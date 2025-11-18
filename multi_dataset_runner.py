@@ -202,9 +202,6 @@ def main():
                        help='Clear cached descriptors before running')
     parser.add_argument('--threshold-multiplier', type=float, default=1.0,
                        help='Multiplier for threshold adjustment (< 1.0 = more lenient, default: 1.0)')
-    parser.add_argument('--threshold-method', type=str, default="original",
-                               choices=["original", "legacy_mean_bad"],
-                       help='Threshold calculation method (default: original; legacy_mean_bad to match old behavior)')
     parser.add_argument('--descriptor', type=str, default="cosplace",
                         choices=["eigenplaces", "cosplace", "alexnet", "hdc-delf", "sad", "netvlad", "patchnetvlad"],
                         help='Single descriptor to use (default: cosplace)')
@@ -272,7 +269,6 @@ def main():
             num_runs=args.num_runs,
             random_seed=args.random_state if args.random_state is not None else 42,
             threshold_multiplier=args.threshold_multiplier,
-            threshold_method=args.threshold_method,
             descriptor=desc
         )
         runner = MultiDatasetRunner(experiment_config)

@@ -170,14 +170,16 @@ def compute_place_averages(
         std_devs = np.array(data["std_dev_bad_scores"], dtype=float)
         filter_ns = np.array(data["filter_n"], dtype=float)
 
-        if method == "legacy_mean_bad":
-            thresholds = mean_bads
-        else:
-            thresholds = mean_bads + filter_ns * std_devs
+        # Per-image thresholds are the mean_bad_scores (no margin)
+        thresholds = mean_bads
 
+        # Method 1: Simple average - mean of all per-image thresholds in this place
         simple_avg_threshold = float(np.mean(thresholds)) if thresholds.size else 0.0
-        # Avoid div by 0: add small epsilon
-        weights = 1.0 / (np.power(std_devs, 2) + 1e-9)
+        
+        # Method 2: Weighted average - inverse-variance weighted mean
+        # Images with lower std_dev (more stable) get higher weight
+        weight_power = 2  # change to 1 to use 1/sd weighting instead of 1/variance
+        weights = 1.0 / (np.power(std_devs, weight_power) + 1e-9)
         if np.sum(weights) > 0:
             weighted_avg_threshold = float(np.sum(weights * thresholds) / np.sum(weights))
         else:
