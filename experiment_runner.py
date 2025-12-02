@@ -9,6 +9,41 @@ from dataclasses import dataclass
 from config import DatasetConfig, ExperimentConfig, get_dataset_config, auto_detect_dataset_structure
 from data_utils import DatasetLoader, ResultsManager, validate_dataset_structure
 
+def compute_weights(mean_bads: np.ndarray, std_devs: np.ndarray, filter_ns: np.ndarray, method: str) -> np.ndarray:
+    """
+    Compute normalized weights for threshold aggregation.
+    
+    Args:
+        mean_bads: Mean bad scores for each image
+        std_devs: Standard deviations of bad scores for each image
+        filter_ns: Filter N values for each image
+        method: Weighting method name
+        
+    Returns:
+        Normalized weights (sum to 1)
+    """
+    if method == "inverse_variance":
+        # Lower variance → Higher weight (more reliable)
+        weights = 1.0 / (np.power(std_devs, 2) + 1e-9)
+    elif method == "filter_n":
+        # Higher filter_n → Higher weight (better separation)
+        weights = filter_ns + 1e-9
+    elif method == "separation_quality":
+        # Higher filter_n/std_dev ratio → Higher weight (better signal-to-noise)
+        weights = filter_ns / (std_devs + 1e-9)
+    elif method == "inverse_cv":
+        # Lower coefficient of variation → Higher weight
+        cv = std_devs / (mean_bads + 1e-9)
+        weights = 1.0 / (cv + 1e-9)
+    elif method == "exponential_std":
+        # Exponentially penalize high std_dev
+        weights = np.exp(-std_devs / (np.mean(std_devs) + 1e-9))
+    else:
+        raise ValueError(f"Unknown weighting method: {method}")
+    
+    # Normalize to sum to 1
+    return weights / (np.sum(weights) + 1e-9)
+
 @dataclass
 class ScoresStruct:
     good_scores: List[float]
@@ -326,11 +361,10 @@ class VPRExperiment:
             # Method 1: Simple average - mean of all per-image thresholds in this place
             simple_avg_threshold = float(np.mean(thresholds))
 
-            # Method 2: Weighted average - inverse-variance weighted mean
-            # Images with lower std_dev (more stable) get higher weight
-            weight_power = 2  # change to 1 to use 1/sd weighting instead of 1/variance
-            weights = 1.0 / (np.power(std_devs, weight_power) + 1e-9)
-            weighted_avg_threshold = float(np.sum(weights * thresholds) / np.sum(weights))
+            # Method 2: Weighted average using configured weighting method
+            weighting_method = getattr(self.experiment_config, 'weighting_method', 'inverse_variance')
+            weights = compute_weights(mean_bads, std_devs, filter_ns, weighting_method)
+            weighted_avg_threshold = float(np.sum(weights * thresholds))
 
             place_averages[place] = {
                 'simple_avg_threshold': simple_avg_threshold,

@@ -7,6 +7,42 @@ from typing import Dict, List
 import numpy as np
 
 
+def compute_weights(mean_bads: np.ndarray, std_devs: np.ndarray, filter_ns: np.ndarray, method: str) -> np.ndarray:
+    """
+    Compute normalized weights for threshold aggregation.
+    
+    Args:
+        mean_bads: Mean bad scores for each image
+        std_devs: Standard deviations of bad scores for each image
+        filter_ns: Filter N values for each image
+        method: Weighting method name
+        
+    Returns:
+        Normalized weights (sum to 1)
+    """
+    if method == "inverse_variance":
+        # Lower variance → Higher weight (more reliable)
+        weights = 1.0 / (np.power(std_devs, 2) + 1e-9)
+    elif method == "filter_n":
+        # Higher filter_n → Higher weight (better separation)
+        weights = filter_ns + 1e-9
+    elif method == "separation_quality":
+        # Higher filter_n/std_dev ratio → Higher weight (better signal-to-noise)
+        weights = filter_ns / (std_devs + 1e-9)
+    elif method == "inverse_cv":
+        # Lower coefficient of variation → Higher weight
+        cv = std_devs / (mean_bads + 1e-9)
+        weights = 1.0 / (cv + 1e-9)
+    elif method == "exponential_std":
+        # Exponentially penalize high std_dev
+        weights = np.exp(-std_devs / (np.mean(std_devs) + 1e-9))
+    else:
+        raise ValueError(f"Unknown weighting method: {method}")
+    
+    # Normalize to sum to 1
+    return weights / (np.sum(weights) + 1e-9)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Generate results/<Dataset>/place_averages.csv from one or more test_results_run_*.csv files."
@@ -23,10 +59,10 @@ def parse_args() -> argparse.Namespace:
         help="Specific run files to use (default: glob all test_results_run_*.csv in dataset-dir)",
     )
     parser.add_argument(
-        "--method",
-        choices=["original", "legacy_mean_bad"],
-        default="legacy_mean_bad",
-        help="Threshold method to use when aggregating per-image stats (default: legacy_mean_bad)",
+        "--weighting-method",
+        choices=["inverse_variance", "filter_n", "separation_quality", "inverse_cv", "exponential_std"],
+        default="inverse_variance",
+        help="Weighting method for aggregating per-image thresholds (default: inverse_variance)",
     )
     return parser.parse_args()
 
@@ -176,12 +212,10 @@ def compute_place_averages(
         # Method 1: Simple average - mean of all per-image thresholds in this place
         simple_avg_threshold = float(np.mean(thresholds)) if thresholds.size else 0.0
         
-        # Method 2: Weighted average - inverse-variance weighted mean
-        # Images with lower std_dev (more stable) get higher weight
-        weight_power = 2  # change to 1 to use 1/sd weighting instead of 1/variance
-        weights = 1.0 / (np.power(std_devs, weight_power) + 1e-9)
-        if np.sum(weights) > 0:
-            weighted_avg_threshold = float(np.sum(weights * thresholds) / np.sum(weights))
+        # Method 2: Weighted average using specified weighting method
+        if thresholds.size > 0:
+            weights = compute_weights(mean_bads, std_devs, filter_ns, method)
+            weighted_avg_threshold = float(np.sum(weights * thresholds))
         else:
             weighted_avg_threshold = simple_avg_threshold
 
@@ -247,7 +281,7 @@ def main():
     # aggregate ALL per-image per-run samples first, then compute thresholds.
     # This matches experiment_runner.calculate_and_save_averages.
     place_data = aggregate_by_place(all_runs)
-    place_averages = compute_place_averages(place_data, method=args.method)
+    place_averages = compute_place_averages(place_data, method=args.weighting_method)
     write_place_averages(dataset_dir, place_averages)
 
 
