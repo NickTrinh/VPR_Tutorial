@@ -20,6 +20,7 @@ import numpy as np
 from typing import List
 
 from .feature_extractor import FeatureExtractor
+from .common import get_device
 
 
 class AlexNetConv3Extractor(FeatureExtractor):
@@ -43,15 +44,7 @@ class AlexNetConv3Extractor(FeatureExtractor):
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ])
 
-        if torch.cuda.is_available():
-            print('Using GPU')
-            self.device = torch.device("cuda")
-        elif torch.backends.mps.is_available() and torch.backends.mps.is_built():
-            print('Using MPS')
-            self.device = torch.device("mps")
-        else:
-            print('Using CPU')
-            self.device = torch.device("cpu")
+        self.device = get_device()
 
         self.model.to(self.device)
 

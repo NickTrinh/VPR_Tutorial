@@ -1,17 +1,13 @@
 import os
 import csv
-from typing import Dict, List
+from typing import List
 import argparse
 from datetime import datetime
-import time
-import numpy as np
-import pandas as pd
 
-from config import DATASETS, ExperimentConfig, DEFAULT_EXPERIMENT
+from config import DATASETS, ExperimentConfig, DEFAULT_EXPERIMENT, get_dataset_config, auto_detect_dataset_structure
 from experiment_runner import run_experiment_on_dataset
-from test_runner import test_dataset, TestResults
+from test_runner import test_dataset
 from data_utils import validate_dataset_structure
-from config import get_dataset_config, auto_detect_dataset_structure
 
 class MultiDatasetRunner:
     """Run experiments and tests across multiple datasets"""
@@ -47,11 +43,11 @@ class MultiDatasetRunner:
         """Run experiments on multiple datasets"""
         print(f"Running experiments on {len(dataset_names)} datasets")
         print("=" * 60)
-        
+
         for dataset_name in dataset_names:
             try:
                 print(f"\n{'='*20} Starting {dataset_name} {'='*20}")
-                
+
                 # Run experiment
                 image_averages, place_averages = run_experiment_on_dataset(
                     dataset_name, self.experiment_config, use_cache
@@ -224,7 +220,7 @@ def main():
         desc_list = [args.descriptor]
     
     if args.list:
-        runner.list_available_datasets()
+        MultiDatasetRunner().list_available_datasets()
         return
     
     if not args.dataset:

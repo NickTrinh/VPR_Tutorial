@@ -98,7 +98,7 @@ def show(
         img_fp = add_frame(np.concatenate(
             [db_fp, q_fp], axis=1), [162, 20, 47])
         img = np.concatenate([img, img_fp], axis=0)
-    except:
+    except (IndexError, ValueError):
         pass
 
     # concat M

@@ -1,13 +1,11 @@
 import numpy as np
 import csv
 import os
-import re
-from glob import glob
 from typing import Dict, List, Tuple
-from dataclasses import dataclass
 
-from config import DatasetConfig, ExperimentConfig, get_dataset_config, auto_detect_dataset_structure
-from data_utils import DatasetLoader, ResultsManager, validate_dataset_structure
+from config import DatasetConfig, ExperimentConfig, validate_and_prepare_dataset
+from data_utils import DatasetLoader, ResultsManager
+from utils import normalize_l2, CSV_COL_IMAGE, CSV_COL_MEAN_BAD, CSV_COL_STD_BAD, CSV_COL_FILTER_N
 
 def compute_weights(mean_bads: np.ndarray, std_devs: np.ndarray, filter_ns: np.ndarray, method: str) -> np.ndarray:
     """
@@ -44,14 +42,6 @@ def compute_weights(mean_bads: np.ndarray, std_devs: np.ndarray, filter_ns: np.n
     # Normalize to sum to 1
     return weights / (np.sum(weights) + 1e-9)
 
-@dataclass
-class ScoresStruct:
-    good_scores: List[float]
-    bad_scores: List[float]
-    mean_bad_scores: float
-    std_dev_bad_scores: float
-    filter_n: int
-
 class VPRExperiment:
     """Main class for running VPR experiments on different datasets"""
     
@@ -62,63 +52,7 @@ class VPRExperiment:
         # Save results under results/<DatasetName>/<descriptor>/
         descriptor_subdir = os.path.join(dataset_config.name, experiment_config.descriptor)
         self.results_manager = ResultsManager(descriptor_subdir, experiment_config.output_dir)
-    
-    def calculate_scores_for_image(self, img_i: int, img_j: int, 
-                                   descriptors_matrix: np.ndarray, 
-                                   picked_set: List[List[int]], 
-                                   test_set: List[int]) -> ScoresStruct:
-        """Calculate scores for a specific image against all other images"""
-        good_scores = []
-        bad_scores = []
-        
-        this_img_feature = descriptors_matrix[img_i, img_j]
-        this_img_feature = this_img_feature / np.linalg.norm(this_img_feature, axis=1, keepdims=True)
-        
-        print(f'Computing cosine similarities for p{img_i}/i{img_j} against all other images')
-        
-        for i in range(self.dataset_config.num_places):
-            test_img_feature = descriptors_matrix[i, test_set[i]]
-            test_img_feature = test_img_feature / np.linalg.norm(test_img_feature, axis=1, keepdims=True)
-            
-            S = np.matmul(this_img_feature, test_img_feature.transpose())
-            
-            if i == img_i:  # Same place, different image
-                good_scores.append(S[0][0])
-            else:  # Different place
-                bad_scores.append(S[0][0])
-        
-        print(f'Calculating statistics for p{img_i}/i{img_j}')
-        mean_bad_scores = np.mean(bad_scores)
-        std_dev_bad_scores = np.std(bad_scores)
-        
-        # Calculate filter_n using original method
-        filter_n = 0
-        if good_scores:
-            min_good_score = min(good_scores)
-            i = 1
-            while True:
-                threshold = mean_bad_scores + (i * std_dev_bad_scores)
-                
-                if min_good_score <= threshold:
-                    filter_n = i - 1
-                    break
-                
-                i += 1
-                if i > 100:  # Safety break
-                    filter_n = 100
-                    break
-        
-        # Apply threshold multiplier for tuning
-        filter_n = filter_n * self.experiment_config.threshold_multiplier
-        
-        return ScoresStruct(good_scores, bad_scores, mean_bad_scores, std_dev_bad_scores, filter_n)
-    
 
-    
-
-    
-
-    
     def run_single_experiment(self, run_number: int) -> Dict[str, Dict[str, float]]:
         """Run a single experiment with random train/test split"""
         print(f'\n===== Running experiment {run_number} on {self.dataset_config.name} =====')
@@ -276,18 +210,18 @@ class VPRExperiment:
     def run_multiple_experiments(self) -> Tuple[Dict, Dict]:
         """Run multiple experiments and calculate averages"""
         print(f'Running {self.experiment_config.num_runs} experiments on {self.dataset_config.name}')
-
+        
         target_runs = self.experiment_config.num_runs
-
+        
         # Run all experiments fresh (no resume)
         all_runs_results: List[Dict] = []
         for run_num in range(1, target_runs + 1):
             run_result = self.run_single_experiment(run_num)
             all_runs_results.append(run_result)
-
+        
         # Calculate and save averages
         image_averages, place_averages = self.calculate_and_save_averages(all_runs_results)
-
+        
         return image_averages, place_averages
     
     def save_run_results(self, run_number: int, results: Dict[str, Dict[str, float]]):
@@ -296,8 +230,8 @@ class VPRExperiment:
         
         with open(filename, mode='w', newline='') as file:
             writer = csv.writer(file)
-            writer.writerow(['Image', 'Mean Bad Scores', 'Std Deviation Bad Scores', 'Filter N'])
-            
+            writer.writerow([CSV_COL_IMAGE, CSV_COL_MEAN_BAD, CSV_COL_STD_BAD, CSV_COL_FILTER_N])
+
             for img_key, scores in sorted(results.items()):
                 writer.writerow([
                     img_key,
@@ -305,7 +239,7 @@ class VPRExperiment:
                     scores['std_dev_bad_scores'],
                     scores['filter_n']
                 ])
-    
+
     def calculate_and_save_averages(self, all_results: List[Dict]) -> Tuple[Dict, Dict]:
         """Calculate and save average scores across all runs"""
         # Aggregate results
@@ -385,8 +319,8 @@ class VPRExperiment:
         
         with open(filename, 'w', newline='') as file:
             writer = csv.writer(file)
-            writer.writerow(['Image', 'Mean Bad Scores', 'Std Deviation Bad Scores', 'Filter N'])
-            
+            writer.writerow([CSV_COL_IMAGE, CSV_COL_MEAN_BAD, CSV_COL_STD_BAD, CSV_COL_FILTER_N])
+
             sorted_keys = sorted(averages.keys(),
                                 key=lambda x: (int(x.split('/')[0][1:]), int(x.split('/')[1][1:])))
             
@@ -429,28 +363,21 @@ def run_experiment_on_dataset(dataset_name: str, experiment_config: ExperimentCo
     if experiment_config is None:
         from config import DEFAULT_EXPERIMENT
         experiment_config = DEFAULT_EXPERIMENT
-    
+
     # Get and validate dataset configuration
-    dataset_config = get_dataset_config(dataset_name)
-    if dataset_config.format == 'landmark':
-        dataset_config = auto_detect_dataset_structure(dataset_config)
-    
-    # The validation needs to be format-aware as well.
-    # For now, let's assume sequential datasets are valid if path exists.
-    if dataset_config.format == 'landmark' and not validate_dataset_structure(dataset_config):
-        raise ValueError(f"Dataset structure validation failed for {dataset_name}")
-    
+    dataset_config = validate_and_prepare_dataset(dataset_name)
+
     print(f"Running experiment on {dataset_config.name}")
     print(f"Dataset: {dataset_config.description}")
     print(f"Places: {dataset_config.num_places}, Images per place: {dataset_config.images_per_place}")
-    
+
     # Create and run experiment
     experiment = VPRExperiment(dataset_config, experiment_config, use_cache=use_cache)
     image_averages, place_averages = experiment.run_multiple_experiments()
-    
+
     print(f"\nExperiment completed for {dataset_name}")
     print(f"Results saved to: {experiment.results_manager.dataset_dir}")
-    
+
     return image_averages, place_averages
 
 if __name__ == "__main__":

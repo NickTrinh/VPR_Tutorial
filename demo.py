@@ -19,41 +19,17 @@
 import argparse
 import configparser
 import os
-import csv
-from datetime import datetime
 
-from evaluation.metrics import recallAtK
+from evaluation.metrics import recallAtK, calculate_recall_at_k_with_filtering, print_recall_at_k_results, save_recall_results_csv
 from evaluation import show_correct_and_wrong_matches
-from matching import matching
+from matching.matching import best_match_per_query, thresholding
 from datasets.load_dataset import GardensPointDataset, StLuciaDataset, SFUDataset, Tokyo247Dataset, PlaceConditionsDataset
 import numpy as np
 import pandas as pd
 
 from matplotlib import pyplot as plt
-from scipy.stats import norm # Added for Recall@K
+from utils import normalize_l2
 
-
-def apply_per_place_thresholds(S, db_place_ids, q_place_ids, place_thresholds):
-    """
-    Applies per-place thresholds to the similarity matrix S.
-    A match is made if S[i, j] is greater than or equal to the threshold
-    for the place corresponding to the database image i.
-    """
-    M = np.zeros_like(S, dtype=bool)
-    num_db, num_q = S.shape
-    
-    for i in range(num_db):
-        place_id = db_place_ids[i]
-        # Use the threshold for the database image's place
-        if place_id in place_thresholds:
-            threshold = place_thresholds[place_id]
-            for j in range(num_q):
-                if S[i, j] >= threshold:
-                    M[i, j] = True
-        # If a place has no threshold (e.g., filtered out by the sweep),
-        # it cannot make any matches.
-            
-    return M
 
 def get_place_ids_from_paths(paths):
     """Extracts place ID from filenames. Supports ImageNNN.jpg and Place####_*.jpg patterns."""
@@ -120,8 +96,6 @@ def main():
     parser = argparse.ArgumentParser(description='Visual Place Recognition: A Tutorial. Code repository supplementing our paper.')
     parser.add_argument('--descriptor', type=lambda s: s.lower(), default='eigenplaces', choices=['hdc-delf', 'alexnet', 'netvlad', 'patchnetvlad', 'cosplace', 'eigenplaces', 'sad'], help='Select descriptor (case-insensitive; default: hdc-delf)')
     parser.add_argument('--dataset', type=lambda s: s.lower(), default='gardenspoint', choices=['gardenspoint', 'gardenspoint_mini', 'stlucia', 'sfu', 'tokyo247', 'sfu_mini', 'nordland_mini', 'nordland_mini_2', 'nordland_mini_3', 'nordland_mini_g2s2', 'nordland_mini_g3s3', 'nordland_mini_g3s5', 'nordland_mini_g3s10', 'nordland_mini_g2s10'], help='Select dataset (case-insensitive; default: gardenspoint)')
-    # parser.add_argument('--threshold-multiplier', type=float, default=1.0, help='Global multiplier applied to per-place thresholds before filtering (default: 1.0)')
-    # parser.add_argument('--threshold-multipliers', type=str, default=None, help='Comma-separated list of multipliers; if provided, evaluates all in one run (e.g., "0.8,1.0,1.5,2.0"). Overrides --threshold-multiplier')
     args = parser.parse_args()
 
     print('========== Start VPR with {} descriptor on dataset {}'.format(args.descriptor, args.dataset))
@@ -189,7 +163,7 @@ def main():
         from feature_extraction.feature_extractor_eigenplaces import EigenPlacesFeatureExtractor
         feature_extractor = EigenPlacesFeatureExtractor()
     else:
-        raise ValueError('Unknown dataset: ' + args.descriptor)
+        raise ValueError('Unknown descriptor: ' + args.descriptor)
 
     if args.descriptor != 'patchnetvlad' and args.descriptor != 'sad':
         print('===== Compute reference set descriptors')
@@ -199,8 +173,8 @@ def main():
 
         # normalize descriptors and compute S-matrix
         print('===== Compute cosine similarities S')
-        db_D_holistic = db_D_holistic / np.linalg.norm(db_D_holistic , axis=1, keepdims=True)
-        q_D_holistic = q_D_holistic / np.linalg.norm(q_D_holistic , axis=1, keepdims=True)
+        db_D_holistic = normalize_l2(db_D_holistic)
+        q_D_holistic = normalize_l2(q_D_holistic)
         S = np.matmul(db_D_holistic , q_D_holistic.transpose())
     elif args.descriptor == 'sad':
         print('===== Compute reference set descriptors')
@@ -223,7 +197,6 @@ def main():
         db_D_holistic, db_D_patches = feature_extractor.compute_features(imgs_db)
         print('===== Compute query set descriptors')
         q_D_holistic, q_D_patches = feature_extractor.compute_features(imgs_q)
-        # S_hol = np.matmul(db_D_holistic , q_D_holistic.transpose())
         S = feature_extractor.local_matcher_from_numpy_single_scale(q_D_patches, db_D_patches)
 
     # show similarity matrix
@@ -236,10 +209,10 @@ def main():
     print('===== Match images')
 
     # best match per query -> Single-best-match VPR
-    M1 = matching.best_match_per_query(S)
+    M1 = best_match_per_query(S)
 
     # thresholding -> Multi-match VPR
-    M2 = matching.thresholding(S, 'auto')
+    M2 = thresholding(S, 'auto')
     TP = np.argwhere(M2 & GThard)  # true positives
     FP = np.argwhere(M2 & ~GTsoft)  # false positives
 
@@ -261,28 +234,17 @@ def main():
     ax2.set_title('Thresholding S>=thresh')
 
     # Preload thresholds for Recall@K evaluation
-    if args.dataset == 'gardenspoint_mini':
-        thresholds_path = f"results/GardensPoint_Mini/{args.descriptor}/place_averages.csv"
-    elif args.dataset == 'sfu_mini':
-        thresholds_path = f"results/SFU_Mini/{args.descriptor}/place_averages.csv"
-    elif args.dataset == 'nordland_mini':
-        thresholds_path = f"results/Nordland_Mini/{args.descriptor}/place_averages.csv"
-    elif args.dataset == 'nordland_mini_2':
-        thresholds_path = f"results/Nordland_Mini_2/{args.descriptor}/place_averages.csv"
-    elif args.dataset == 'nordland_mini_3':
-        thresholds_path = f"results/Nordland_Mini_3/{args.descriptor}/place_averages.csv"
-    elif args.dataset == 'nordland_mini_g2s2':
-        thresholds_path = f"results/Nordland_Mini_g2s2/{args.descriptor}/place_averages.csv"
-    elif args.dataset == 'nordland_mini_g3s3':
-        thresholds_path = f"results/Nordland_Mini_g3s3/{args.descriptor}/place_averages.csv"
-    elif args.dataset == 'nordland_mini_g3s5':
-        thresholds_path = f"results/Nordland_Mini_g3s5/{args.descriptor}/place_averages.csv"
-    elif args.dataset == 'nordland_mini_g3s10':
-        thresholds_path = f"results/Nordland_Mini_g3s10/{args.descriptor}/place_averages.csv"
-    elif args.dataset == 'nordland_mini_g2s10':
-        thresholds_path = f"results/Nordland_Mini_g2s10/{args.descriptor}/place_averages.csv"
-    else:
-        thresholds_path = "results/GardensPoint/place_averages.csv"
+    _DATASET_RESULTS_DIR = {
+        'gardenspoint': 'GardensPoint', 'gardenspoint_mini': 'GardensPoint_Mini',
+        'stlucia': 'StLuciaSmall', 'sfu': 'SFU', 'tokyo247': 'Tokyo247',
+        'sfu_mini': 'SFU_Mini', 'nordland_mini': 'Nordland_Mini',
+        'nordland_mini_2': 'Nordland_Mini_2', 'nordland_mini_3': 'Nordland_Mini_3',
+        'nordland_mini_g2s2': 'Nordland_Mini_g2s2', 'nordland_mini_g3s3': 'Nordland_Mini_g3s3',
+        'nordland_mini_g3s5': 'Nordland_Mini_g3s5', 'nordland_mini_g3s10': 'Nordland_Mini_g3s10',
+        'nordland_mini_g2s10': 'Nordland_Mini_g2s10',
+    }
+    results_dir = _DATASET_RESULTS_DIR.get(args.dataset, 'GardensPoint')
+    thresholds_path = f"results/{results_dir}/{args.descriptor}/place_averages.csv"
     if os.path.exists(thresholds_path):
         print(f"\nLoading thresholds from: {thresholds_path}")
         df_thresholds = pd.read_csv(thresholds_path)
@@ -290,8 +252,6 @@ def main():
         df_thresholds.columns = [c.lower() for c in df_thresholds.columns]
         db_place_ids = get_place_ids_from_paths(dataset.db_paths)
         q_place_ids = get_place_ids_from_paths(dataset.q_paths)
-        # Multiplier disabled: always use thresholds as-is
-        tms = [1.0]
     else:
         df_thresholds = None
         db_place_ids, q_place_ids = None, None
@@ -315,121 +275,25 @@ def main():
     
     # --- Our Methods (Per-Place Thresholds with Filtering) ---
     if os.path.exists(thresholds_path):
-        base_simple = df_thresholds.set_index('place')['simple_avg_threshold'].to_dict()
-        base_weighted = df_thresholds.set_index('place')['weighted_avg_threshold'].to_dict()
+        simple_avg_thresholds = df_thresholds.set_index('place')['simple_avg_threshold'].to_dict()
+        weighted_avg_thresholds = df_thresholds.set_index('place')['weighted_avg_threshold'].to_dict()
 
-        for _ in tms:
-            # --- Method 2: Simple Average Per-Place Thresholds ---
-            simple_avg_thresholds = base_simple
-            print(f"\n--- Method 2: Simple Average (Filter-then-Rank) ---")
-            R_at_K_simple = calculate_recall_at_k_with_filtering(S, GThard, db_place_ids, q_place_ids, per_place_thresholds=simple_avg_thresholds, ks=ks)
-            print_recall_at_k_results(R_at_K_simple)
-            save_recall_results_csv(args.dataset, args.descriptor, 'simple_avg_thresholds', R_at_K_simple)
+        # --- Method 2: Simple Average Per-Place Thresholds ---
+        print(f"\n--- Method 2: Simple Average (Filter-then-Rank) ---")
+        R_at_K_simple = calculate_recall_at_k_with_filtering(S, GThard, db_place_ids, q_place_ids, per_place_thresholds=simple_avg_thresholds, ks=ks)
+        print_recall_at_k_results(R_at_K_simple)
+        save_recall_results_csv(args.dataset, args.descriptor, 'simple_avg_thresholds', R_at_K_simple)
 
-            # --- Method 3: Weighted Average Per-Place Thresholds ---
-            weighted_avg_thresholds = base_weighted
-            print(f"\n--- Method 3: Weighted Average (Filter-then-Rank) ---")
-            R_at_K_weighted = calculate_recall_at_k_with_filtering(S, GThard, db_place_ids, q_place_ids, per_place_thresholds=weighted_avg_thresholds, ks=ks)
-            print_recall_at_k_results(R_at_K_weighted)
-            save_recall_results_csv(args.dataset, args.descriptor, 'weighted_avg_thresholds', R_at_K_weighted)
+        # --- Method 3: Weighted Average Per-Place Thresholds ---
+        print(f"\n--- Method 3: Weighted Average (Filter-then-Rank) ---")
+        R_at_K_weighted = calculate_recall_at_k_with_filtering(S, GThard, db_place_ids, q_place_ids, per_place_thresholds=weighted_avg_thresholds, ks=ks)
+        print_recall_at_k_results(R_at_K_weighted)
+        save_recall_results_csv(args.dataset, args.descriptor, 'weighted_avg_thresholds', R_at_K_weighted)
     else:
         print("\nSkipping per-place threshold Recall@K evaluation because thresholds file was not found.")
 
     plt.show()
 
 
-def calculate_recall_at_k_with_filtering(S, GThard, db_place_ids, q_place_ids, per_place_thresholds=None, ks=[1, 3, 5]):
-    """
-    Calculates Recall@K for our methods by first filtering with per-place thresholds, then ranking.
-    """
-    num_queries = S.shape[1]
-    correct_at_k = {k: 0 for k in ks}
-    valid_query_count = 0
-    
-    # Pre-compute mapping from DB index to place ID
-    db_idx_to_place = {i: pid for i, pid in enumerate(db_place_ids)}
-
-    for q_idx in range(num_queries):
-        # Find the ground truth place(s) for this query
-        gt_db_indices = np.where(GThard[:, q_idx])[0]
-        if len(gt_db_indices) == 0:
-            continue # Skip queries with no correct match in DB
-        valid_query_count += 1
-        
-        correct_place_ids = set(db_idx_to_place[i] for i in gt_db_indices)
-
-        # Step 1: Filtering - Find all candidate matches that pass the threshold
-        candidate_db_indices = []
-        scores = S[:, q_idx]
-
-        if per_place_thresholds is not None:
-            # Must check each DB image against its own place's threshold
-            for db_idx, score in enumerate(scores):
-                place_id = db_idx_to_place[db_idx]
-                if place_id in per_place_thresholds and score >= per_place_thresholds[place_id]:
-                    candidate_db_indices.append(db_idx)
-        else:
-            # This function is now only for per-place thresholding.
-            # The baseline uses the original recallAtK.
-            raise ValueError("This function requires per_place_thresholds.")
-
-        if len(candidate_db_indices) == 0:
-            continue
-
-        # Step 2: Ranking - Rank the unique places of the candidates by their best score
-        candidate_places = {} # {place_id: best_score}
-        for db_idx in candidate_db_indices:
-            place_id = db_idx_to_place[db_idx]
-            score = scores[db_idx]
-            if place_id not in candidate_places or score > candidate_places[place_id]:
-                candidate_places[place_id] = score
-        
-        # Sort places by score in descending order
-        ranked_places = sorted(candidate_places.keys(), key=lambda pid: candidate_places[pid], reverse=True)
-
-        # Step 3: Evaluation - Check if a correct place is in the top K
-        for k in ks:
-            top_k_places = set(ranked_places[:k])
-            if not top_k_places.isdisjoint(correct_place_ids):
-                correct_at_k[k] += 1
-    
-    # Calculate final recall percentages using only queries with GT matches (aligns with baseline)
-    denom = valid_query_count if valid_query_count > 0 else 1
-    recall_results = {k: (count / denom) * 100 for k, count in correct_at_k.items()}
-    return recall_results
-
-def print_recall_at_k_results(results):
-    """Prints a formatted string of Recall@K results."""
-    for k, recall in results.items():
-        print(f"Recall@{k}: {recall:.2f}%")
-
-
-def save_recall_results_csv(dataset_name, descriptor_name, method_name, results_dict):
-    """Append Recall@K results to results/comparison/recall_at_k.csv"""
-    out_dir = os.path.join('results', 'comparison')
-    os.makedirs(out_dir, exist_ok=True)
-    out_file = os.path.join(out_dir, 'recall_at_k.csv')
-
-    file_exists = os.path.exists(out_file)
-    with open(out_file, 'a', newline='') as f:
-        writer = csv.writer(f)
-        if not file_exists:
-            writer.writerow(['Timestamp', 'Dataset', 'Descriptor', 'Method', 'Recall@1', 'Recall@3', 'Recall@5', 'Recall@10'])
-        r1 = results_dict.get(1, '')
-        r3 = results_dict.get(3, '')
-        r5 = results_dict.get(5, '')
-        r10 = results_dict.get(10, '')
-        writer.writerow([
-            datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            dataset_name,
-            descriptor_name,
-            method_name,
-            f"{r1:.2f}" if r1 != '' else '',
-            f"{r3:.2f}" if r3 != '' else '',
-            f"{r5:.2f}" if r5 != '' else '',
-            f"{r10:.2f}" if r10 != '' else ''
-        ])
-
-
-if __name__ == '__main__':  
+if __name__ == '__main__':
     main()

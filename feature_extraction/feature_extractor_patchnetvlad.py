@@ -1,10 +1,6 @@
 import torch
 from torch.utils.data import DataLoader
-import torchvision.transforms as transforms
-import torch.utils.data as data
 import subprocess
-
-from PIL import Image
 
 from os.path import join, isfile
 from typing import List
@@ -15,56 +11,12 @@ from patchnetvlad.models.models_generic import get_backend, get_model, get_pca_e
 from patchnetvlad.tools import PATCHNETVLAD_ROOT_DIR
 
 from .feature_extractor import FeatureExtractor
-
-
-class ImageDataset(data.Dataset):
-    def __init__(self, imgs):
-        super().__init__()
-        self.mytransform = self.input_transform()
-        self.images = imgs
-
-    def __getitem__(self, index):
-        # img = Image.open(self.images[index])
-        # TODO: Check if the channel order is correct
-        img = self.images[index]
-        img = self.mytransform(img)
-
-        return img, index
-
-    def __len__(self):
-        return len(self.images)
-
-    @staticmethod
-    def input_transform(resize=(480, 640)):
-        if resize[0] > 0 and resize[1] > 0:
-            return transforms.Compose([
-                transforms.ToPILImage(),
-                transforms.Resize(resize),
-                transforms.ToTensor(),
-                transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                    std=[0.229, 0.224, 0.225]),
-            ])
-        else:
-            return transforms.Compose([
-                transforms.ToPILImage(),
-                transforms.ToTensor(),
-                transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                    std=[0.229, 0.224, 0.225]),
-            ])
+from .common import ImageDataset, get_device
 
 class PatchNetVLADFeatureExtractor(FeatureExtractor):
     def __init__(self, config):
         self.config = config
-
-        if torch.cuda.is_available():
-            print('Using GPU')
-            self.device = torch.device("cuda")
-        elif torch.backends.mps.is_available() and torch.backends.mps.is_built():
-            print('Using MPS')
-            self.device = torch.device("mps")
-        else:
-            print('Using CPU')
-            self.device = torch.device("cpu")
+        self.device = get_device()
 
         encoder_dim, encoder = get_backend()
 
@@ -128,7 +80,7 @@ class PatchNetVLADFeatureExtractor(FeatureExtractor):
     def compute_features(self, imgs: List[np.ndarray]) -> np.ndarray:
         pool_size = int(self.config['global_params']['num_pcs'])
 
-        img_set = ImageDataset(imgs)
+        img_set = ImageDataset(imgs, resize=(480, 640))
         test_data_loader = DataLoader(dataset=img_set, num_workers=int(self.config['global_params']['threads']),
                                     batch_size=int(self.config['feature_extract']['cacheBatchSize']),
                                     shuffle=False, pin_memory=torch.cuda.is_available())

@@ -24,7 +24,6 @@ import numpy as np
 from scipy.signal import convolve2d
 from typing import List, Tuple
 from abc import ABC, abstractmethod
-import imageio.v2 as imageio
 
 
 class Dataset(ABC):
@@ -58,8 +57,8 @@ class GardensPointDataset(Dataset):
         self.q_paths = sorted(glob(os.path.join(path_q, '*.jpg')))
 
         # load images
-        imgs_db = [imageio.imread(p) for p in self.db_paths]
-        imgs_q = [imageio.imread(p) for p in self.q_paths]
+        imgs_db = [np.array(Image.open(p)) for p in self.db_paths]
+        imgs_q = [np.array(Image.open(p)) for p in self.q_paths]
 
         # ground truth
         GThard = np.eye(len(imgs_db)).astype('bool')
@@ -183,68 +182,6 @@ class SFUDataset(Dataset):
 
         # remove zipfile
         os.remove(destination + fn)
-
-class TwoImgDataset(Dataset):
-    def __init__(self, destination: str = 'images/MatchingPairs/'):
-        self.destination = destination
-
-    def load(self) -> Tuple[List[np.ndarray], List[np.ndarray]]:
-        print('===== Load dataset TwoImg')
-
-        # download images if necessary
-        if not os.path.exists(self.destination):
-            self.download(self.destination)
-
-        # load images
-        fns_db = sorted(glob(self.destination + '1/*.jpg'))
-        fns_q = sorted(glob(self.destination + '2/*.jpg'))
-
-        imgs_db = [np.array(Image.open(fn)) for fn in fns_db]
-        imgs_q = [np.array(Image.open(fn)) for fn in fns_q]
-
-        # create ground truth
-        # GThard = np.eye(len(imgs_db)).astype('bool')
-        # GTsoft = convolve2d(GThard.astype('int'),
-        #                     np.ones((17, 1), 'int'), mode='same').astype('bool')
-
-        return imgs_db, imgs_q
-        
-
-    def download(self, destination: str):
-        pass
-
-
-class GardensPointLandmarkDataset(Dataset):
-    def __init__(self, destination: str = 'images/GardensPoint_Landmark/'):
-        self.destination = destination
-
-    def load(self) -> Tuple[List[np.ndarray], List[np.ndarray], np.ndarray, np.ndarray]:
-        print('===== Load dataset GardensPoint_Landmark (day_left vs night_right)')
-        
-        db_paths = sorted(glob(os.path.join(self.destination, 'p*', '*_day_left_*.jpg')))
-        q_paths = sorted(glob(os.path.join(self.destination, 'p*', '*_night_right_*.jpg')))
-
-        imgs_db = [imageio.imread(p) for p in db_paths]
-        imgs_q = [imageio.imread(p) for p in q_paths]
-
-        # Get the place ID from the path (e.g., 'images/GardensPoint_Landmark/p10')
-        db_place_ids = [int(os.path.basename(os.path.dirname(p))[1:]) for p in db_paths]
-        q_place_ids = [int(os.path.basename(os.path.dirname(p))[1:]) for p in q_paths]
-
-        num_db = len(imgs_db)
-        num_q = len(imgs_q)
-        
-        GThard = np.zeros((num_db, num_q), dtype=bool)
-        for i in range(num_db):
-            for j in range(num_q):
-                if db_place_ids[i] == q_place_ids[j]:
-                    GThard[i, j] = True
-
-        # No soft ground truth for this dataset
-        GTsoft = np.zeros_like(GThard, dtype=bool)
-
-        return imgs_db, imgs_q, GThard, GTsoft
-
 
 class Tokyo247Dataset(Dataset):
     def __init__(self, destination: str = 'mini_VPR_datasets/Tokyo24_7/tokyo247_vpr_format/'):

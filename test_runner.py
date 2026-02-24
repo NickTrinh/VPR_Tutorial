@@ -1,10 +1,12 @@
+import os
 import numpy as np
 import csv
-from typing import Dict, List, Tuple
+from typing import List, Tuple
 from dataclasses import dataclass
 
-from config import DatasetConfig, get_dataset_config, auto_detect_dataset_structure
-from data_utils import DatasetLoader, ResultsManager, validate_dataset_structure
+from config import DatasetConfig, validate_and_prepare_dataset
+from data_utils import DatasetLoader, ResultsManager
+from utils import normalize_l2, CSV_COL_IMAGE, CSV_COL_MEAN_BAD, CSV_COL_STD_BAD, CSV_COL_FILTER_N
 
 @dataclass
 class Place:
@@ -38,33 +40,33 @@ class ThresholdDataLoader:
             reader = csv.DictReader(file)
             for row in reader:
                 place = Place(
-                    mean_bad_scores=float(row['Mean Bad Scores']),
-                    std_dev_bad_scores=float(row['Std Deviation Bad Scores']),
-                    filter_n=float(row['Filter N'])
+                    mean_bad_scores=float(row[CSV_COL_MEAN_BAD]),
+                    std_dev_bad_scores=float(row[CSV_COL_STD_BAD]),
+                    filter_n=float(row[CSV_COL_FILTER_N])
                 )
                 places.append(place)
-        
+
         return places
-    
+
     def load_image_thresholds(self, dataset_config: DatasetConfig) -> List[List[Place]]:
         """Load image-level threshold data"""
         filename = self.results_manager.get_image_averages_filename()
-        
+
         # Initialize matrix
-        places_matrix = [[None for _ in range(dataset_config.images_per_place)] 
+        places_matrix = [[None for _ in range(dataset_config.images_per_place)]
                         for _ in range(dataset_config.num_places)]
-        
+
         with open(filename, 'r') as file:
             reader = csv.DictReader(file)
             for row in reader:
-                img_key = row['Image']
+                img_key = row[CSV_COL_IMAGE]
                 place_idx = int(img_key.split('/')[0][1:])  # Extract place index from 'p0'
                 img_idx = int(img_key.split('/')[1][1:])    # Extract image index from 'i0'
-                
+
                 place = Place(
-                    mean_bad_scores=float(row['Mean Bad Scores']),
-                    std_dev_bad_scores=float(row['Std Deviation Bad Scores']),
-                    filter_n=float(row['Filter N'])
+                    mean_bad_scores=float(row[CSV_COL_MEAN_BAD]),
+                    std_dev_bad_scores=float(row[CSV_COL_STD_BAD]),
+                    filter_n=float(row[CSV_COL_FILTER_N])
                 )
                 places_matrix[place_idx][img_idx] = place
         
@@ -93,95 +95,68 @@ class VPRTester:
         
         return descriptors_matrix, picked_set, test_set
     
-    def test_with_place_thresholds(self, descriptors_matrix: np.ndarray, 
-                                   picked_set: List[List[int]], 
+    def _test_with_thresholds(self, descriptors_matrix: np.ndarray,
+                              picked_set: List[List[int]],
+                              test_set: List[int],
+                              get_threshold_fn) -> TestResults:
+        """Core test loop. get_threshold_fn(i, j) returns the threshold for place i, image j."""
+        TP, FP, TN, FN = 0, 0, 0, 0
+
+        for k in range(self.dataset_config.num_places):
+            test_img_feature = normalize_l2(descriptors_matrix[k, test_set[k]])
+
+            for i in range(self.dataset_config.num_places):
+                for j in picked_set[i]:
+                    threshold = get_threshold_fn(i, j)
+
+                    matching_img_feature = normalize_l2(descriptors_matrix[i, j])
+
+                    S = np.matmul(test_img_feature, matching_img_feature.transpose())
+                    score = S[0][0]
+
+                    if score < threshold:
+                        print(f'Test p{k}/i{test_set[k]} rejected vs p{i}/i{j}. Score: {score:.6f}, Threshold: {threshold:.6f}')
+                        if i == k:
+                            FN += 1
+                        else:
+                            TN += 1
+                    else:
+                        print(f'Test p{k}/i{test_set[k]} accepted vs p{i}/i{j}. Score: {score:.6f}, Threshold: {threshold:.6f}')
+                        if i == k:
+                            TP += 1
+                        else:
+                            FP += 1
+
+        return self._calculate_metrics(TP, FP, TN, FN)
+
+    def test_with_place_thresholds(self, descriptors_matrix: np.ndarray,
+                                   picked_set: List[List[int]],
                                    test_set: List[int]) -> TestResults:
         """Test using place-level thresholds"""
         print('Testing with place-level thresholds')
-        
-        # Load place-level thresholds
         places = self.threshold_loader.load_place_thresholds()
-        
-        TP, FP, TN, FN = 0, 0, 0, 0
-        
-        for k in range(self.dataset_config.num_places):
-            test_img_feature = descriptors_matrix[k, test_set[k]]
-            test_img_feature = test_img_feature / np.linalg.norm(test_img_feature, axis=1, keepdims=True)
-            
-            for i in range(self.dataset_config.num_places):
-                place_thresholds = places[i]
-                threshold = (place_thresholds.mean_bad_scores + 
-                           (place_thresholds.filter_n * place_thresholds.std_dev_bad_scores))
-                
-                for j in picked_set[i]:
-                    matching_img_feature = descriptors_matrix[i, j]
-                    matching_img_feature = matching_img_feature / np.linalg.norm(matching_img_feature, axis=1, keepdims=True)
-                    
-                    S = np.matmul(test_img_feature, matching_img_feature.transpose())
-                    score = S[0][0]
-                    
-                    if score < threshold:
-                        print(f'Test p{k}/i{test_set[k]} rejected vs p{i}/i{j}. Score: {score:.6f}, Threshold: {threshold:.6f}')
-                        if i == k:
-                            FN += 1
-                        else:
-                            TN += 1
-                    else:
-                        print(f'Test p{k}/i{test_set[k]} accepted vs p{i}/i{j}. Score: {score:.6f}, Threshold: {threshold:.6f}')
-                        if i == k:
-                            TP += 1
-                        else:
-                            FP += 1
-        
-        return self._calculate_metrics(TP, FP, TN, FN)
-    
-    def test_with_image_thresholds(self, descriptors_matrix: np.ndarray, 
-                                   picked_set: List[List[int]], 
+
+        def get_threshold(i, j):
+            p = places[i]
+            return p.mean_bad_scores + (p.filter_n * p.std_dev_bad_scores)
+
+        return self._test_with_thresholds(descriptors_matrix, picked_set, test_set, get_threshold)
+
+    def test_with_image_thresholds(self, descriptors_matrix: np.ndarray,
+                                   picked_set: List[List[int]],
                                    test_set: List[int]) -> TestResults:
         """Test using image-level thresholds"""
         print('Testing with image-level thresholds')
-        
-        # Load image-level thresholds
         places_matrix = self.threshold_loader.load_image_thresholds(self.dataset_config)
-        
-        TP, FP, TN, FN = 0, 0, 0, 0
-        
-        for k in range(self.dataset_config.num_places):
-            test_img_feature = descriptors_matrix[k, test_set[k]]
-            test_img_feature = test_img_feature / np.linalg.norm(test_img_feature, axis=1, keepdims=True)
-            
-            for i in range(self.dataset_config.num_places):
-                for j in picked_set[i]:
-                    img_thresholds = places_matrix[i][j]
-                    
-                    # If image-level threshold data is missing, assign 0 values
-                    if img_thresholds is None:
-                        print(f'Warning: No image-level threshold for p{i}/i{j}, using 0 threshold')
-                        img_thresholds = Place(mean_bad_scores=0.0, std_dev_bad_scores=0.0, filter_n=0.0)
-                    
-                    threshold = (img_thresholds.mean_bad_scores + 
-                               (img_thresholds.filter_n * img_thresholds.std_dev_bad_scores))
-                    
-                    matching_img_feature = descriptors_matrix[i, j]
-                    matching_img_feature = matching_img_feature / np.linalg.norm(matching_img_feature, axis=1, keepdims=True)
-                    
-                    S = np.matmul(test_img_feature, matching_img_feature.transpose())
-                    score = S[0][0]
-                    
-                    if score < threshold:
-                        print(f'Test p{k}/i{test_set[k]} rejected vs p{i}/i{j}. Score: {score:.6f}, Threshold: {threshold:.6f}')
-                        if i == k:
-                            FN += 1
-                        else:
-                            TN += 1
-                    else:
-                        print(f'Test p{k}/i{test_set[k]} accepted vs p{i}/i{j}. Score: {score:.6f}, Threshold: {threshold:.6f}')
-                        if i == k:
-                            TP += 1
-                        else:
-                            FP += 1
-        
-        return self._calculate_metrics(TP, FP, TN, FN)
+
+        def get_threshold(i, j):
+            p = places_matrix[i][j]
+            if p is None:
+                print(f'Warning: No image-level threshold for p{i}/i{j}, using 0 threshold')
+                p = Place(mean_bad_scores=0.0, std_dev_bad_scores=0.0, filter_n=0.0)
+            return p.mean_bad_scores + (p.filter_n * p.std_dev_bad_scores)
+
+        return self._test_with_thresholds(descriptors_matrix, picked_set, test_set, get_threshold)
     
     def _calculate_metrics(self, TP: int, FP: int, TN: int, FN: int) -> TestResults:
         """Calculate performance metrics"""
@@ -243,12 +218,7 @@ def print_test_results(results: TestResults, test_type: str):
 def test_dataset(dataset_name: str, random_state: int = None, use_cache: bool = True):
     """Test a specific dataset"""
     # Get and validate dataset configuration
-    dataset_config = get_dataset_config(dataset_name)
-    if dataset_config.format == 'landmark':
-        dataset_config = auto_detect_dataset_structure(dataset_config)
-    
-    if dataset_config.format == 'landmark' and not validate_dataset_structure(dataset_config):
-        raise ValueError(f"Dataset structure validation failed for {dataset_name}")
+    dataset_config = validate_and_prepare_dataset(dataset_name)
     
     print(f"Testing {dataset_config.name}")
     print(f"Dataset: {dataset_config.description}")

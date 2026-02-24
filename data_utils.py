@@ -7,11 +7,6 @@ from PIL import Image
 from glob import glob
 from typing import List, Tuple, Dict
 from config import DatasetConfig
-from feature_extraction.feature_extractor_eigenplaces import EigenPlacesFeatureExtractor
-from feature_extraction.feature_extractor_cosplace import CosPlaceFeatureExtractor
-from feature_extraction.feature_extractor_holistic import AlexNetConv3Extractor, HDCDELF, SAD
-from datasets.load_dataset import StLuciaDataset, SFUDataset # Import dataset loaders
-from scipy.sparse import csgraph
 
 class DatasetLoader:
     """Utility class for loading and processing datasets"""
@@ -38,18 +33,22 @@ class DatasetLoader:
     def _init_feature_extractor(self, name: str):
         n = (name or "").lower()
         if n == "cosplace":
+            from feature_extraction.feature_extractor_cosplace import CosPlaceFeatureExtractor
             return CosPlaceFeatureExtractor()
         if n in ("eigenplaces", "eigenplace"):
+            from feature_extraction.feature_extractor_eigenplaces import EigenPlacesFeatureExtractor
             return EigenPlacesFeatureExtractor()
         if n == "alexnet":
+            from feature_extraction.feature_extractor_holistic import AlexNetConv3Extractor
             return AlexNetConv3Extractor()
         if n in ("hdc-delf", "hdcdelf", "hdc_delf"):
+            from feature_extraction.feature_extractor_holistic import HDCDELF
             return HDCDELF()
         if n == "sad":
+            from feature_extraction.feature_extractor_holistic import SAD
             return SAD()
         if n in ("netvlad", "patchnetvlad"):
             try:
-                import os
                 import configparser
                 from patchnetvlad.tools import PATCHNETVLAD_ROOT_DIR
                 from feature_extraction.feature_extractor_patchnetvlad import PatchNetVLADFeatureExtractor
@@ -62,8 +61,9 @@ class DatasetLoader:
                 return PatchNetVLADFeatureExtractor(cfg)
             except Exception as e:
                 raise ImportError("PatchNetVLAD is not available. Install 'patchnetvlad' and its models, or choose a different --descriptor.") from e
+        from feature_extraction.feature_extractor_eigenplaces import EigenPlacesFeatureExtractor
         return EigenPlacesFeatureExtractor()
-    
+
     def _generate_place_map_from_grouped_landmark(self):
         """
         Builds a place_map for grouped datasets.
@@ -173,18 +173,18 @@ class DatasetLoader:
         print(f'Generating place map for {self.config.name}')
         
         # Use the appropriate loader from VPR_Tutorial
+        from datasets.load_dataset import StLuciaDataset, SFUDataset
         if self.config.name == "StLuciaSmall":
             loader = StLuciaDataset(self.config.path)
         elif self.config.name == "SFU":
             loader = SFUDataset(self.config.path)
         else:
             raise NotImplementedError(f"No sequential loader implemented for {self.config.name}")
-            
+
         imgs_db, imgs_q, GThard, _ = loader.load()
-        # For simplicity, we'll just use the db images for now to form places
-        all_images = imgs_db
 
         # Find connected components in the ground truth matrix
+        from scipy.sparse import csgraph
         n_components, labels = csgraph.connected_components(csgraph=GThard, directed=False, return_labels=True)
         
         place_map = [[] for _ in range(n_components)]
@@ -309,6 +309,7 @@ class DatasetLoader:
         # This function needs a comprehensive list of all image paths
         all_image_paths = []
         if self.config.format == 'sequential':
+            from datasets.load_dataset import StLuciaDataset, SFUDataset
             if self.config.name == "StLuciaSmall":
                 loader = StLuciaDataset(self.config.path)
             elif self.config.name == "SFU":
@@ -369,11 +370,11 @@ class DatasetLoader:
                     pass
                 for j, idx in enumerate(batch_indices):
                     descriptor = feats[j:j+1, :]
-                    cached_descriptors[idx] = descriptor
-                    if self.use_cache:
-                        cache_path = os.path.join(self.cache_dir, f"img_{idx}_descriptor.pkl")
-                        with open(cache_path, 'wb') as f:
-                            pickle.dump({'descriptor': descriptor}, f)
+                cached_descriptors[idx] = descriptor
+                if self.use_cache:
+                    cache_path = os.path.join(self.cache_dir, f"img_{idx}_descriptor.pkl")
+                    with open(cache_path, 'wb') as f:
+                        pickle.dump({'descriptor': descriptor}, f)
                 # free batch
                 del images_batch, feats
 

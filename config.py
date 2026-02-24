@@ -258,4 +258,22 @@ def auto_detect_dataset_structure(dataset_config: DatasetConfig) -> DatasetConfi
                       if os.path.isdir(os.path.join(first_place_path, d)) and d.startswith('i')]
         dataset_config.images_per_place = len(image_dirs)
     
-    return dataset_config 
+    return dataset_config
+
+
+def validate_and_prepare_dataset(dataset_name: str) -> DatasetConfig:
+    """Get, auto-detect, and validate a dataset configuration.
+
+    Combines the identical validation block duplicated across
+    experiment_runner, test_runner, and multi_dataset_runner.
+    """
+    from data_utils import validate_dataset_structure
+
+    dataset_config = get_dataset_config(dataset_name)
+    if dataset_config.format == 'landmark':
+        dataset_config = auto_detect_dataset_structure(dataset_config)
+
+    if dataset_config.format == 'landmark' and not validate_dataset_structure(dataset_config):
+        raise ValueError(f"Dataset structure validation failed for {dataset_name}")
+
+    return dataset_config

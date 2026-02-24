@@ -43,3 +43,6 @@ Timestamp,Dataset,Descriptor,Method,Recall@1,Recall@3,Recall@5,Recall@10
 2025-11-17 21:44:18,gardenspoint_mini,eigenplaces,baseline,61.67,96.67,100.00,100.00
 2025-11-17 21:44:18,gardenspoint_mini,eigenplaces,simple_avg_thresholds,93.33,98.33,100.00,100.00
 2025-11-17 21:44:18,gardenspoint_mini,eigenplaces,weighted_avg_thresholds,93.33,98.33,100.00,100.00
+2026-02-24 11:35:57,gardenspoint_mini,eigenplaces,baseline,61.67,96.67,100.00,100.00
+2026-02-24 11:35:57,gardenspoint_mini,eigenplaces,simple_avg_thresholds,93.33,98.33,100.00,100.00
+2026-02-24 11:35:57,gardenspoint_mini,eigenplaces,weighted_avg_thresholds,93.33,98.33,100.00,100.00
