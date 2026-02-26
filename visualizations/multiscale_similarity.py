@@ -9,7 +9,11 @@ The hypothesis: similarity drops more steeply when crossing a place boundary.
 import argparse
 import os
 import pickle
+import sys
 from pathlib import Path
+
+# Allow imports from project root when running from visualizations/
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import numpy as np
 from PIL import Image
