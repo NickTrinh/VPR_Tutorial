@@ -1,0 +1,115 @@
+Hi Professor Lyons,
+
+Here's an update on comparing our method to Vysotska et al. (ICRA 2025). I'll walk through what I did and why at each step.
+
+
+BACKGROUND: WHAT VYSOTSKA DOES AND WHY WE CHOSE THEM
+
+Vysotska et al. is the closest published work to ours — they also try to adaptively threshold similarity scores for place recognition, rather than using a fixed global threshold. Their approach works as follows:
+
+Given a full similarity matrix S (all query images vs all reference images), for each query image they:
+  1. Find its best-matching reference image (argmax along the row)
+  2. Extract a 20x20 patch from S centered around that match
+  3. Run a Kolmogorov-Smirnov (KS) test on the patch values to check if they come from a single Gaussian distribution. If the KS test rejects the null hypothesis (p < 0.05), the scores are likely bimodal — meaning there are both matching and non-matching scores in the patch.
+  4. If bimodal, fit a 2-component Gaussian Mixture Model (GMM) to separate the "match" and "non-match" distributions. The threshold is set at the intersection of the two Gaussians — the point where it's equally likely the score came from either distribution.
+  5. Smooth the threshold over time with a 1D Kalman filter, so the threshold doesn't jump erratically between queries.
+
+They also have a separate graph-based sequence matcher (from their earlier 2016 work) that builds a graph over the cost matrix and finds the shortest path to enforce sequential consistency — i.e., if query 5 matches reference 10, then query 6 should match somewhere near reference 11, not reference 150. I cloned this code from their GitHub (github.com/ovysotska/image_sequence_matcher) and integrated it as well.
+
+I chose Vysotska because:
+  - Same problem: adaptive thresholding for VPR
+  - Recent venue: ICRA 2025
+  - They test on Nordland (first 500 images), which we also have
+  - They evaluate with Precision/Recall/F1, not Recall@K
+
+This last point is important. In our RCC paper we evaluated with Recall@K (is the correct place in the top K results?). Vysotska evaluates with Precision/Recall/F1, which measures whether the system correctly accepts genuine matches AND correctly rejects non-matches. These are different things — Recall@K doesn't penalize the system for accepting wrong matches, it only checks if the right answer appears somewhere in the top K. Precision/Recall/F1 does penalize false acceptances. To make the comparison fair, I added Precision/Recall/F1 computation to our pipeline alongside Recall@K.
+
+
+HOW THE COMPARISON WORKS
+
+Both methods need to be evaluated on the same task, so I built a common pipeline:
+
+  1. PLACE DISCOVERY: I run our online place discovery algorithm on the reference condition (e.g., GardensPoint day_left). This processes images one at a time, monitoring the cosine similarity between consecutive frames. When similarity drops significantly (indicating the robot has moved to a new place), it starts a new place. This produces a set of discovered places, each containing a group of reference frame indices. For GardensPoint (200 images), this finds 19 places.
+
+  2. THRESHOLD COMPUTATION: For our method, I compute per-place thresholds from the reference data alone. For each place p, I look at how similar its images are to images from OTHER places (the "negative" or "bad" similarities). The threshold is based on these negative statistics. For Vysotska's method, I compute the full query-vs-reference similarity matrix and run their sliding window + GMM + Kalman pipeline to get per-query thresholds.
+
+  3. RECOGNITION: Query images come in from a different condition (e.g., day_right). For each query, we compute its similarity to all reference images, then average by place to get a per-place score. We compare these scores against the thresholds — if the best score is below the threshold, the query is rejected (no match found). Otherwise, the highest-scoring place above threshold is the prediction.
+
+  4. EVALUATION: Since these are sequential datasets with frame-to-frame correspondence (query frame 0 matches reference frame 0, frame 1 matches frame 1, etc.), we know which place each query SHOULD match. We count:
+    - TP (true positive): query accepted, predicted place is correct
+    - FP (false positive): query accepted, but predicted place is wrong
+    - FN (false negative): query rejected, but it had a correct match
+    Then compute Precision = TP/(TP+FP), Recall = TP/(TP+FN), F1 = harmonic mean.
+
+An important difference is where the thresholds come from. Our method computes thresholds entirely from the reference-to-reference similarity matrix — the threshold for each place is based on how similar that place's images are to images from OTHER (non-matching) places. This is what we call the "negative statistics": mean_bad is the average similarity between a place's images and all other places' images, capturing the baseline noise level of cross-place similarity. If a query can't even score above that noise floor, it's rejected. No query data is involved in computing these thresholds. Vysotska's method computes thresholds from the query-vs-reference similarity matrix — for each query, they extract a patch around that query's best match and fit a GMM on those scores. So their threshold adapts to each specific query's similarity pattern, while ours is fixed once the reference set is processed. Both can handle streaming queries, but the source of the threshold is fundamentally different: ours is a property of the place, theirs is a property of the query-reference interaction.
+
+
+INITIAL HEAD-TO-HEAD RESULTS
+
+I tested two variants of our threshold:
+  - mean_bad: θ = average cross-place similarity (this is what we published in the RCC paper)
+  - filter_n: θ = mean_bad + filter_n * std_bad, where filter_n = floor((mean_good - mean_bad) / std_bad), capped at 10. This was the original formula we developed during the RCC paper but dropped because it was too strict — it rejected too many genuine matches.
+
+GardensPoint (200 images, day_left ref -> day_right query, 19 discovered places):
+  Baseline (no threshold): R@1=91.0%  P=91.0%  R=100.0%  F1=95.3%
+    (Baseline always picks the highest-scoring place with no rejection, so recall is always 100%.)
+  Our mean_bad:            R@1=91.0%  P=95.6%  R=95.6%   F1=95.3%
+  Our filter_n:            R@1=77.0%  P=100%   R=85.6%   F1=92.2%
+  Vysotska (GMM+KS+KF):   R@1=77.0%  P=87.6%  R=85.6%   F1=86.4%
+
+Nordland (first 500 images — same subset Vysotska uses in their paper — summer ref -> winter query, 46 discovered places):
+  Baseline (no threshold): R@1=83.0%  P=83.0%  R=100.0%  F1=90.7%
+  Our mean_bad:            R@1=83.0%  P=91.3%  R=90.2%   F1=90.7%
+  Our filter_n:            R@1=36.2%  P=100%   R=39.7%   F1=56.9%
+  Vysotska (GMM+KS+KF):   R@1=55.4%  P=72.8%  R=60.3%   F1=65.6%
+
+Our mean_bad wins on both datasets. But I noticed something: mean_bad performs almost identically to the baseline (no threshold). On one hand, this is actually good news — it means the place discovery algorithm did a great job separating places, so the highest-scoring place is usually correct even without thresholding (91% baseline precision). The places are well-separated enough that thresholding doesn't add much in this closed-set setting.
+
+But it also means mean_bad isn't really doing meaningful thresholding. It's the average cross-place similarity — a very low bar — so almost everything passes. This becomes a problem when the system encounters images from places it has never seen before, because those unfamiliar images can still score above the cross-place noise floor within the reference set.
+
+The sequence matcher made no difference on either dataset because the frames are already aligned — query frame i corresponds to reference frame i, so there's no need to enforce sequential consistency.
+
+
+WHY I ADDED DISTRACTORS
+
+The problem with the initial comparison is that it's a "closed-set" test: every query has a correct answer. A real system would also encounter images from places it has never seen before, and it needs to reject those. This is exactly what thresholding is supposed to help with — distinguishing "I've been here before" from "this is somewhere new."
+
+To test this, I created a mixed query set:
+  - 100 genuine queries: GardensPoint day_right (should match reference places)
+  - 100 distractors: SFU dry campus images (completely different location — should be REJECTED because no matching reference place exists)
+
+Now the system needs to both accept genuine queries into the correct place AND reject distractors. This is a much harder and more realistic test.
+
+Results:
+  Method              Precision  Recall   F1     Distractor Rejection
+  Baseline (no thresh)  45.0%   100.0%   62.1%    0.0%
+  Our mean_bad          52.0%   100.0%   68.4%   27.0%
+  Our filter_n          87.4%   100.0%   93.3%   97.0%
+  Vysotska (GMM+KS+KF) 81.2%    88.2%   84.5%   88.0%
+
+Interpretation:
+  - Baseline: accepts every query, so 0% distractor rejection, precision is only 45% (half the queries are distractors that all get incorrectly accepted)
+  - mean_bad: only rejects 27% of distractors. This confirms it's too lenient to be a useful threshold.
+  - filter_n: rejects 97% of distractors while keeping 100% recall on genuine queries. F1=93.3%. This is the strongest result.
+  - Vysotska: rejects 88% of distractors (good) but also rejects some genuine queries (recall=88.2%), ending at F1=84.5%.
+
+The filter_n threshold wins because it's adaptive per place. For each place, filter_n measures how many standard deviations of "bad" similarity fit between mean_bad and mean_good. If a place has very distinctive features, filter_n is large and the threshold is strict. If features are less distinctive, filter_n is smaller and the threshold is more lenient. Vysotska's per-query threshold can't capture this per-place structure because it operates on local patches of the similarity matrix without knowledge of place boundaries.
+
+
+REGARDING COMPARING PLACE GENERATION
+
+To answer your question about comparing the places we generate with Vysotska's: Vysotska's method does not discover or generate places. Their system takes a full similarity matrix and produces per-query accept/reject decisions. The place discovery step is entirely our contribution — there's no equivalent in their pipeline to compare against.
+
+Their earlier work (2016 sequence matcher) finds correspondences between two image sequences, but that's matching, not place segmentation. It takes a cost matrix and finds an optimal path through it, which tells you which query frame corresponds to which reference frame. It doesn't group frames into places.
+
+What we could do is compare how recognition performance changes when using our automatically discovered places vs manually defined ground truth places. That would isolate how much the discovery step helps or hurts. On GardensPoint, our algorithm discovers 19 places from 200 frames; we could check what happens if we instead use perfectly even 10-frame places, or use the labeled GT from the Mini dataset.
+
+
+NEXT STEPS
+- Run full Nordland experiment (all 27,592 images) on the GPU cluster
+- Run distractor experiment on Nordland as well
+- Test with more distractor sources beyond SFU for robustness
+- Compare discovered vs GT places to isolate discovery contribution
+
+Best,
+Nick
