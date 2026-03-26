@@ -47,6 +47,9 @@ class DatasetLoader:
         if n == "sad":
             from feature_extraction.feature_extractor_holistic import SAD
             return SAD()
+        if n in ("dinov2-salad", "dinov2_salad", "dinov2salad", "salad"):
+            from feature_extraction.feature_extractor_dinov2_salad import DINOv2SALADFeatureExtractor
+            return DINOv2SALADFeatureExtractor()
         if n in ("netvlad", "patchnetvlad"):
             try:
                 import configparser

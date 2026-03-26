@@ -94,7 +94,7 @@ def compute_features_chunked(feature_extractor, imgs, env_var='VPR_DEMO_FEAT_BAT
 
 def main():
     parser = argparse.ArgumentParser(description='Visual Place Recognition: A Tutorial. Code repository supplementing our paper.')
-    parser.add_argument('--descriptor', type=lambda s: s.lower(), default='eigenplaces', choices=['hdc-delf', 'alexnet', 'netvlad', 'patchnetvlad', 'cosplace', 'eigenplaces', 'sad'], help='Select descriptor (case-insensitive; default: hdc-delf)')
+    parser.add_argument('--descriptor', type=lambda s: s.lower(), default='eigenplaces', choices=['hdc-delf', 'alexnet', 'netvlad', 'patchnetvlad', 'cosplace', 'eigenplaces', 'sad', 'dinov2-salad'], help='Select descriptor (case-insensitive; default: hdc-delf)')
     parser.add_argument('--dataset', type=lambda s: s.lower(), default='gardenspoint', choices=['gardenspoint', 'gardenspoint_mini', 'stlucia', 'sfu', 'tokyo247', 'sfu_mini', 'nordland_mini', 'nordland_mini_2', 'nordland_mini_3', 'nordland_mini_g2s2', 'nordland_mini_g3s3', 'nordland_mini_g3s5', 'nordland_mini_g3s10', 'nordland_mini_g2s10'], help='Select dataset (case-insensitive; default: gardenspoint)')
     args = parser.parse_args()
 
@@ -162,6 +162,9 @@ def main():
     elif args.descriptor == 'eigenplaces':
         from feature_extraction.feature_extractor_eigenplaces import EigenPlacesFeatureExtractor
         feature_extractor = EigenPlacesFeatureExtractor()
+    elif args.descriptor in ('dinov2-salad', 'dinov2_salad', 'salad'):
+        from feature_extraction.feature_extractor_dinov2_salad import DINOv2SALADFeatureExtractor
+        feature_extractor = DINOv2SALADFeatureExtractor()
     else:
         raise ValueError('Unknown descriptor: ' + args.descriptor)
 

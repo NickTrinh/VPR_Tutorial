@@ -162,7 +162,7 @@ class VysotskaDaptiveThreshold:
         values = values.reshape(-1, 1)
 
         gmm = GaussianMixture(n_components=2, random_state=42,
-                               max_iter=100, n_init=3)
+                               max_iter=50, n_init=1)
         gmm.fit(values)
 
         means = gmm.means_.flatten()

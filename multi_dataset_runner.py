@@ -199,7 +199,7 @@ def main():
     parser.add_argument('--threshold-multiplier', type=float, default=1.0,
                        help='Multiplier for threshold adjustment (< 1.0 = more lenient, default: 1.0)')
     parser.add_argument('--descriptor', type=str, default="cosplace",
-                        choices=["eigenplaces", "cosplace", "alexnet", "hdc-delf", "sad", "netvlad", "patchnetvlad"],
+                        choices=["eigenplaces", "cosplace", "alexnet", "hdc-delf", "sad", "netvlad", "patchnetvlad", "dinov2-salad"],
                         help='Single descriptor to use (default: cosplace)')
     parser.add_argument('--descriptors', type=str, default=None,
                         help='Comma-separated list of descriptors to run sequentially (e.g., eigenplaces,cosplace)')
@@ -210,7 +210,7 @@ def main():
     use_cache = not args.no_cache
     
     # Resolve descriptor list
-    allowed_desc = {"eigenplaces", "cosplace", "alexnet", "hdc-delf", "sad", "netvlad", "patchnetvlad"}
+    allowed_desc = {"eigenplaces", "cosplace", "alexnet", "hdc-delf", "sad", "netvlad", "patchnetvlad", "dinov2-salad"}
     if args.descriptors:
         desc_list = [d.strip().lower() for d in args.descriptors.split(',') if d.strip()]
         desc_list = [d for d in desc_list if d in allowed_desc]
