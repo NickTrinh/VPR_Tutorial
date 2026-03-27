@@ -8,6 +8,7 @@ from config import DATASETS, ExperimentConfig, DEFAULT_EXPERIMENT, get_dataset_c
 from experiment_runner import run_experiment_on_dataset
 from test_runner import test_dataset
 from data_utils import validate_dataset_structure
+from sequential_runner import run_sequential_experiment, SEQUENTIAL_PRESETS
 
 class MultiDatasetRunner:
     """Run experiments and tests across multiple datasets"""
@@ -39,6 +40,40 @@ class MultiDatasetRunner:
             
             print(f"{name:15} | {status:15} | {config.description} {info}")
     
+    def _is_sequential(self, dataset_name: str) -> bool:
+        """Check if a dataset uses sequential format (needs online place discovery)."""
+        cfg = get_dataset_config(dataset_name)
+        return cfg.format == "sequential"
+
+    def _store_sequential_results(self, dataset_name: str, results: dict):
+        """Convert sequential_runner results into the common summary format."""
+        dataset_config = get_dataset_config(dataset_name)
+        closed = results.get("closed_set", {})
+        ours = closed.get("ours", {})
+
+        # Create a lightweight result object compatible with print_comparison_summary
+        class _R:
+            def __init__(self, d):
+                self.TP = d.get("TP", 0)
+                self.FP = d.get("FP", 0)
+                self.TN = d.get("TN", 0)
+                self.FN = d.get("FN", 0)
+                self.precision = d.get("P", 0) / 100
+                self.recall = d.get("R", 0) / 100
+                f1 = d.get("F1", 0) / 100
+                self.f1_score = f1
+                self.accuracy = (self.TP + self.TN) / max(self.TP + self.FP + self.TN + self.FN, 1)
+
+        self.results_summary.append({
+            'dataset': dataset_name,
+            'dataset_name': dataset_config.name,
+            'place_results': _R(ours),
+            'image_results': _R(ours),  # sequential eval is place-level only
+            'random_state': None,
+            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'sequential_full': results,
+        })
+
     def run_experiments_on_datasets(self, dataset_names: List[str], use_cache: bool = True):
         """Run experiments on multiple datasets"""
         print(f"Running experiments on {len(dataset_names)} datasets")
@@ -48,13 +83,22 @@ class MultiDatasetRunner:
             try:
                 print(f"\n{'='*20} Starting {dataset_name} {'='*20}")
 
-                # Run experiment
-                image_averages, place_averages = run_experiment_on_dataset(
-                    dataset_name, self.experiment_config, use_cache
-                )
-                
+                if self._is_sequential(dataset_name):
+                    # Sequential datasets use online place discovery
+                    results = run_sequential_experiment(
+                        dataset_name=dataset_name,
+                        descriptor_name=self.experiment_config.descriptor,
+                        use_cache=use_cache,
+                    )
+                    self._store_sequential_results(dataset_name, results)
+                else:
+                    # Landmark datasets use predefined places
+                    image_averages, place_averages = run_experiment_on_dataset(
+                        dataset_name, self.experiment_config, use_cache
+                    )
+
                 print(f"[✓] Experiment completed for {dataset_name}")
-                
+
             except Exception as e:
                 print(f"[X] Error running experiment on {dataset_name}: {str(e)}")
                 continue
@@ -63,27 +107,37 @@ class MultiDatasetRunner:
         """Test multiple datasets and collect results"""
         print(f"Testing {len(dataset_names)} datasets")
         print("=" * 60)
-        
+
         for dataset_name in dataset_names:
             try:
                 print(f"\n{'='*20} Testing {dataset_name} {'='*20}")
-                
-                # Run test
-                place_results, image_results = test_dataset(dataset_name, random_state, use_cache)
-                
-                # Store results for summary
-                dataset_config = get_dataset_config(dataset_name)
-                self.results_summary.append({
-                    'dataset': dataset_name,
-                    'dataset_name': dataset_config.name,
-                    'place_results': place_results,
-                    'image_results': image_results,
-                    'random_state': random_state,
-                    'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                })
-                
+
+                if self._is_sequential(dataset_name):
+                    # Sequential datasets: experiment and test are one step
+                    # (thresholds are computed inline, not saved to disk)
+                    results = run_sequential_experiment(
+                        dataset_name=dataset_name,
+                        descriptor_name=self.experiment_config.descriptor,
+                        use_cache=use_cache,
+                    )
+                    self._store_sequential_results(dataset_name, results)
+                else:
+                    # Run test
+                    place_results, image_results = test_dataset(dataset_name, random_state, use_cache)
+
+                    # Store results for summary
+                    dataset_config = get_dataset_config(dataset_name)
+                    self.results_summary.append({
+                        'dataset': dataset_name,
+                        'dataset_name': dataset_config.name,
+                        'place_results': place_results,
+                        'image_results': image_results,
+                        'random_state': random_state,
+                        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    })
+
                 print(f"[✓] Test completed for {dataset_name}")
-                
+
             except Exception as e:
                 print(f"[X] Error testing {dataset_name}: {str(e)}")
                 continue
@@ -92,15 +146,33 @@ class MultiDatasetRunner:
         """Run both experiments and tests on multiple datasets"""
         print(f"Running full pipeline on {len(dataset_names)} datasets")
         print("=" * 60)
-        
-        # First run experiments to generate thresholds
-        print("\nPhase 1: Running experiments to generate thresholds")
-        self.run_experiments_on_datasets(dataset_names, use_cache)
-        
-        # Then run tests using the generated thresholds
-        print("\nPhase 2: Running tests using generated thresholds")
-        self.test_datasets(dataset_names, random_state, use_cache)
-        
+
+        # Split by format: sequential datasets do experiment+test in one shot
+        sequential = [d for d in dataset_names if self._is_sequential(d)]
+        landmark = [d for d in dataset_names if not self._is_sequential(d)]
+
+        if sequential:
+            print(f"\nSequential datasets ({len(sequential)}): {sequential}")
+            for dataset_name in sequential:
+                try:
+                    results = run_sequential_experiment(
+                        dataset_name=dataset_name,
+                        descriptor_name=self.experiment_config.descriptor,
+                        use_cache=use_cache,
+                    )
+                    self._store_sequential_results(dataset_name, results)
+                    print(f"[✓] Sequential pipeline completed for {dataset_name}")
+                except Exception as e:
+                    print(f"[X] Error on sequential dataset {dataset_name}: {e}")
+
+        if landmark:
+            print(f"\nLandmark datasets ({len(landmark)}): {landmark}")
+            print("\nPhase 1: Running experiments to generate thresholds")
+            self.run_experiments_on_datasets(landmark, use_cache)
+
+            print("\nPhase 2: Running tests using generated thresholds")
+            self.test_datasets(landmark, random_state, use_cache)
+
         # Generate comparison report
         self.save_comparison_report()
     
@@ -271,11 +343,7 @@ def main():
         if args.experiment_only:
             runner.run_experiments_on_datasets(valid_datasets, use_cache)
         elif args.test_only:
-            # Ensure tester reads/writes under descriptor subdir
-            from test_runner import test_dataset
-            for dataset_name in valid_datasets:
-                # test_dataset internally constructs its own loader; here we just call it per dataset
-                test_dataset(dataset_name, args.random_state, use_cache)
+            runner.test_datasets(valid_datasets, args.random_state, use_cache)
             runner.save_comparison_report()
         else:
             runner.run_full_pipeline_on_datasets(valid_datasets, args.random_state, use_cache)

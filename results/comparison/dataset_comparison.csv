@@ -27,3 +27,11 @@ Timestamp,Dataset,Type,Seed,True Positives,False Positives,True Negatives,False 
 2025-08-18 16:37:19,GardensPoint_Mini,Image-level,random,38,11,749,2,0.7755,0.9500,0.9838,0.8539
 2025-08-18 16:40:33,GardensPoint_Mini,Place-level,random,24,2,758,16,0.9231,0.6000,0.9775,0.7273
 2025-08-18 16:40:33,GardensPoint_Mini,Image-level,random,37,6,754,3,0.8605,0.9250,0.9888,0.8916
+2026-03-26 21:03:24,GardensPoint,Place-level,random,182,18,0,0,0.9100,1.0000,0.9100,0.9529
+2026-03-26 21:03:24,GardensPoint,Image-level,random,182,18,0,0,0.9100,1.0000,0.9100,0.9529
+2026-03-26 21:06:38,SFU,Place-level,random,305,80,0,0,0.7922,1.0000,0.7922,0.8841
+2026-03-26 21:06:38,SFU,Image-level,random,305,80,0,0,0.7922,1.0000,0.7922,0.8841
+2026-03-26 21:25:12,GardensPoint,Place-level,random,182,18,0,0,0.9100,1.0000,0.9100,0.9529
+2026-03-26 21:25:12,GardensPoint,Image-level,random,182,18,0,0,0.9100,1.0000,0.9100,0.9529
+2026-03-26 21:25:55,SFU,Place-level,random,305,80,0,0,0.7922,1.0000,0.7922,0.8841
+2026-03-26 21:25:55,SFU,Image-level,random,305,80,0,0,0.7922,1.0000,0.7922,0.8841
