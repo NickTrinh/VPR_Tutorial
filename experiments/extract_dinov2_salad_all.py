@@ -53,14 +53,46 @@ DATASETS = {
         "cache_dir": "cache/SFU/jan/dinov2-salad",
         "n": 385,
     },
+    "bonn_reference": {
+        "image_dir": "images/bonn_example/reference/images",
+        "cache_dir": "cache/Bonn/reference/dinov2-salad",
+        "n": None,
+    },
+    "bonn_query": {
+        "image_dir": "images/bonn_example/query/images",
+        "cache_dir": "cache/Bonn/query/dinov2-salad",
+        "n": None,
+    },
+    "freiburg_reference": {
+        "image_dir": "images/freiburg_example/reference/images",
+        "cache_dir": "cache/Freiburg/reference/dinov2-salad",
+        "n": None,
+    },
+    "freiburg_query": {
+        "image_dir": "images/freiburg_example/query/images",
+        "cache_dir": "cache/Freiburg/query/dinov2-salad",
+        "n": None,
+    },
+    "essex3in1_reference": {
+        "image_dir": "images/ESSEX3IN1/reference_combined",
+        "cache_dir": "cache/ESSEX3IN1/reference/dinov2-salad",
+        "n": 210,
+    },
+    "essex3in1_query": {
+        "image_dir": "images/ESSEX3IN1/query_combined",
+        "cache_dir": "cache/ESSEX3IN1/query/dinov2-salad",
+        "n": 210,
+    },
 }
 
 
 def get_image_paths(image_dir, n):
+    """Return up to n image paths in image_dir; n=None means all of them."""
     all_files = sorted(os.listdir(image_dir))
     all_files = [f for f in all_files if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
-    paths = [os.path.join(image_dir, f) for f in all_files[:n]]
-    return paths
+    if n is not None:
+        all_files = all_files[:n]
+    return [os.path.join(image_dir, f) for f in all_files]
 
 
 def extract_features(image_paths, cache_dir, model, preprocess, device):
