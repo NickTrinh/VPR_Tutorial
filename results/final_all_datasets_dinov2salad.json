@@ -328,14 +328,14 @@
       "n_distractor": 116
     },
     "natural_Vysotska": {
-      "P": 84.49,
+      "P": 84.76,
       "R": 100.0,
-      "F1": 91.6,
+      "F1": 91.75,
       "TP": 267,
-      "FP": 49,
+      "FP": 48,
       "FN": 0,
-      "TN": 69,
-      "rejection": 59.48,
+      "TN": 70,
+      "rejection": 60.34,
       "n_distractor": 116
     }
   },
@@ -396,14 +396,14 @@
       "n_distractor": 63
     },
     "natural_Vysotska": {
-      "P": 86.31,
+      "P": 85.8,
       "R": 100.0,
-      "F1": 92.65,
+      "F1": 92.36,
       "TP": 145,
-      "FP": 23,
+      "FP": 24,
       "FN": 0,
-      "TN": 42,
-      "rejection": 66.67,
+      "TN": 41,
+      "rejection": 65.08,
       "n_distractor": 63
     }
   }

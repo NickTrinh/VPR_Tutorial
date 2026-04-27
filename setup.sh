@@ -59,20 +59,24 @@ download_zip "http://www.ipb.uni-bonn.de/html/projects/visual_place_recognition/
 download_zip "http://www.ipb.uni-bonn.de/html/projects/visual_place_recognition/freiburg_example.zip" "freiburg_example"
 
 # --- GardensPoint (32 MB) — from TU-Chemnitz mirror used by stschubert/VPR_Tutorial ---
+# NB: this zip has no top-level wrapper directory, so extract into GardensPoint/.
 if [ ! -d "GardensPoint" ]; then
     echo "  [get]  GardensPoint_Walking.zip"
     wget -q --show-progress "https://www.tu-chemnitz.de/etit/proaut/datasets/GardensPoint_Walking.zip"
-    unzip -q GardensPoint_Walking.zip
+    mkdir -p GardensPoint
+    unzip -q GardensPoint_Walking.zip -d GardensPoint
     rm -f GardensPoint_Walking.zip
 else
     echo "  [skip] GardensPoint/ already exists"
 fi
 
 # --- SFU Mountain (72 MB) ---
+# NB: this zip also lacks a top-level wrapper directory, so extract into SFU/.
 if [ ! -d "SFU" ]; then
     echo "  [get]  SFU.zip"
     wget -q --show-progress "https://www.tu-chemnitz.de/etit/proaut/datasets/SFU.zip"
-    unzip -q SFU.zip
+    mkdir -p SFU
+    unzip -q SFU.zip -d SFU
     rm -f SFU.zip
 else
     echo "  [skip] SFU/ already exists"

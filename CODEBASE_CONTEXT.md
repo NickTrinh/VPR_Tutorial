@@ -267,8 +267,8 @@ discovery `m=2 / h=2 / α=1.5`, continuous adaptive k.
 | Bonn | 92.1 | 92.2% | 93.1 | 89.3% |
 | Freiburg | 88.0 | 99.6% | 94.4 | 93.7% |
 | GardensPoint | 95.9 | 100.0% | 98.2 | 96.7% |
-| SFU | 71.8 | 79.3% | 91.6 | 59.5% |
-| ESSEX3IN1 | 80.1 | 60.3% | 92.7 | 66.7% |
+| SFU | 71.8 | 79.3% | 91.8 | 60.3% |
+| ESSEX3IN1 | 80.1 | 60.3% | 92.4 | 65.1% |
 
 **Key finding:** On the four structured datasets (Nordland, Bonn, Freiburg,
 GardensPoint), our method rejects 92–100% of same-environment distractors vs

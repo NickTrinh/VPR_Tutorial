@@ -12,47 +12,45 @@ unknown (open-set).
 
 ---
 
-## Install
+## Reproduce in three commands
 
 ```bash
 git clone https://github.com/NickTrinh/VPR_Tutorial.git
 cd VPR_Tutorial
+conda create -n vprtutorial python=3.11 && conda activate vprtutorial
 
-conda create -n vprtutorial python=3.11
-conda activate vprtutorial
-pip install -r requirements.txt
+bash setup.sh                                    # 1. install deps + auto-download datasets
+python -m experiments.extract_dinov2_salad_all   # 2. GPU descriptor extraction
+python -m experiments.final_all_datasets         # 3. closed-set + natural open-set, prints Tables 2 & 3
 ```
 
-`torch` and `tensorflow` versions in `requirements.txt` are pinned to what was
-used for the paper; a GPU with CUDA is needed only for descriptor extraction.
+Step 3 writes `results/final_all_datasets_dinov2salad.json` and prints the
+summary tables that populate the paper's Tables 2 and 3 (a few minutes on CPU
+once descriptors are cached). `torch` and `tensorflow` versions in
+`requirements.txt` are pinned to what was used for the paper; a CUDA GPU is
+needed only for step 2.
 
 ---
 
 ## Datasets
 
-The repository does **not** ship the datasets — combined they exceed 40 GB.
-Download each from its canonical source and unpack into `images/` with the
-directory layout shown below.
+`setup.sh` auto-fetches everything except Nordland-500 (HuggingFace LFS, one
+manual step). The script prints the URL and target path at the end.
 
-| Dataset        | Size   | Download |
-|----------------|--------|----------|
-| GardensPoint   | 32 MB  | [QUT Wiki](https://wiki.qut.edu.au/display/cyphy/Day+and+Night+with+Lateral+Pose+Change+Datasets) — also auto-fetched by [stschubert/VPR_Tutorial](https://github.com/stschubert/VPR_Tutorial) |
-| SFU Mountain   | 72 MB  | <http://autonomy.cs.sfu.ca/sfu-mountain-dataset/> |
-| Bonn           | 1.2 GB | <http://www.ipb.uni-bonn.de/html/projects/visual_place_recognition/bonn_example.zip> |
-| Freiburg       | 738 MB | <http://www.ipb.uni-bonn.de/html/projects/visual_place_recognition/freiburg_example.zip> |
-| ESSEX3IN1      | 1.5 GB | <https://github.com/MubarizZaffar/ESSEX3IN1-Dataset> |
-| Nordland       | ~36 GB full, 500-image subset used | <https://huggingface.co/datasets/Somayeh-h/Nordland> |
+| Dataset        | Size   | Auto-fetched? | Source |
+|----------------|--------|---------------|--------|
+| GardensPoint   | 32 MB  | yes (TU-Chemnitz mirror) | [QUT Wiki](https://wiki.qut.edu.au/display/cyphy/Day+and+Night+with+Lateral+Pose+Change+Datasets) |
+| SFU Mountain   | 72 MB  | yes (TU-Chemnitz mirror) | <http://autonomy.cs.sfu.ca/sfu-mountain-dataset/> |
+| Bonn           | 1.2 GB | yes | <http://www.ipb.uni-bonn.de/html/projects/visual_place_recognition/bonn_example.zip> |
+| Freiburg       | 738 MB | yes | <http://www.ipb.uni-bonn.de/html/projects/visual_place_recognition/freiburg_example.zip> |
+| ESSEX3IN1      | 1.5 GB | yes (git clone) | <https://github.com/MubarizZaffar/ESSEX3IN1-Dataset> |
+| Nordland-500   | 500-img subset of ~36 GB | **manual** | <https://huggingface.co/datasets/Somayeh-h/Nordland> |
 
-Bonn and Freiburg are direct zips and can be fetched non-interactively:
+For Nordland, place the first 500 frames of the 1 fps winter and summer
+traversals at `images/Nordland_Mini/{winter,summer}/*.jpg` to match
+Vysotska et al.'s protocol.
 
-```bash
-mkdir -p images && cd images
-wget http://www.ipb.uni-bonn.de/html/projects/visual_place_recognition/bonn_example.zip
-wget http://www.ipb.uni-bonn.de/html/projects/visual_place_recognition/freiburg_example.zip
-unzip bonn_example.zip && unzip freiburg_example.zip && cd ..
-```
-
-Expected layout after download:
+Expected layout after `setup.sh` + the Nordland step:
 
 ```
 images/
@@ -63,32 +61,6 @@ images/
 ├── ESSEX3IN1/{reference_combined, query_combined}/*.jpg (210 each)
 └── Nordland_Mini/{winter, summer}/*.jpg             (first 500 each, 1 fps)
 ```
-
-For Nordland we take the first 500 frames of the 1 fps winter and summer
-traversals to match Vysotska et al.'s protocol.
-
----
-
-## Reproduce the paper
-
-### 1. Extract DINOv2 SALAD descriptors (GPU required)
-
-```bash
-python -m experiments.extract_dinov2_salad_all
-```
-
-Output is cached to `cache/<dataset>/<condition>/dinov2-salad/*.pkl`.
-Re-runs skip already-cached images.
-
-### 2. Run all 6 datasets, closed-set + natural open-set
-
-```bash
-python -m experiments.final_all_datasets
-```
-
-Writes `results/final_all_datasets_dinov2salad.json` and prints the summary
-tables that populate the paper's Tables 2 and 3. Runs in a few minutes on CPU
-once descriptors are cached.
 
 ---
 
