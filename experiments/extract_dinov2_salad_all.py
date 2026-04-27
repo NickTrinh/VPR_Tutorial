@@ -119,8 +119,12 @@ def extract_features(image_paths, cache_dir, model, preprocess, device):
             imgs.append(preprocess(img))
 
         batch_tensor = torch.stack(imgs).to(device)
-        with torch.no_grad(), torch.cuda.amp.autocast():
-            features = model(batch_tensor)
+        with torch.no_grad():
+            if device.type == "cuda":
+                with torch.cuda.amp.autocast():
+                    features = model(batch_tensor)
+            else:
+                features = model(batch_tensor)
 
         features_np = features.cpu().numpy().astype(np.float32)
 
@@ -137,12 +141,12 @@ def main():
     print("DINOv2 SALAD Feature Extraction — All Datasets")
     print("=" * 60)
 
-    if not torch.cuda.is_available():
-        print("ERROR: CUDA not available. Run on GPU node.")
-        sys.exit(1)
-
-    device = torch.device("cuda")
-    print(f"Device: {device} ({torch.cuda.get_device_name()})")
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+        print(f"Device: {device} ({torch.cuda.get_device_name()})")
+    else:
+        device = torch.device("cpu")
+        print("Device: cpu (CUDA unavailable — extraction will be much slower)")
 
     print("\nLoading DINOv2 SALAD model...")
     t0 = time.time()

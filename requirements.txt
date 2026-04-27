@@ -11,4 +11,6 @@ tensorflow==2.15.1
 tensorflow_hub==0.16.1
 torch==2.1.0
 torchvision==0.16.0
+pytorch_lightning==2.1.4
+pytorch_metric_learning==2.9.0
 tqdm==4.65.0
