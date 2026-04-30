@@ -1,7 +1,7 @@
 # Adaptive Per-Place Thresholding for Open-Set Visual Place Recognition
 
 Code accompanying the IEEE RAL submission from FRCV Lab, Fordham University
-(Nick Trinh, Damian Lyons). Paper source: [`IEEE_RAL_VPR/RCC2025.tex`](IEEE_RAL_VPR/RCC2025.tex).
+(Nick Trinh, Damian Lyons). Paper source: [`arXiv`](https://arxiv.org/abs/2512.09071).
 
 ---
 
@@ -22,11 +22,11 @@ whose score to every discovered place falls below that place's threshold are
 rejected as unknown (open-set).
 
 The architectural punchline: Vysotska et al. (ICRA 2025), the closest prior
-work, fits a per-query threshold to a patch of the full similarity matrix —
-they need every query upfront and pay one threshold per query. Our
+work, fits a per-query threshold to a patch of the full similarity matrix.
+They need every query upfront and pay one threshold per query. Our
 thresholds are *properties of places*, computed once, fixed at evaluation.
 
-![Method pipeline](IEEE_RAL_VPR/fig8_method_pipeline.png)
+![Method pipeline](figures/fig8_method_pipeline.png)
 
 ---
 
@@ -59,7 +59,7 @@ On four of six datasets (Nordland, Bonn, Freiburg, GardensPoint) we reject
 **92.2 – 100 %** of same-environment distractors versus Vysotska's 77.3 –
 96.7 %, while staying within 2 – 8 F1 points of their closed-set numbers. On
 SFU (forest trail) and ESSEX3IN1 (near-identical corridors), the local-window
-prior baked into Vysotska's sequence matcher carries the signal — those are
+prior baked into Vysotska's sequence matcher carries the signal. These are
 sequence-dominated environments where per-image thresholds can't
 recover the placement. The two methods are complementary, not strictly
 ordered.
@@ -88,7 +88,7 @@ CPU once descriptors are cached. `torch` and `tensorflow` versions in
 `requirements.txt` are pinned to what was used for the paper.
 
 Step 2 supports CPU fallback (auto-detected), but is **much** slower
-without a GPU — extraction is ~10 s/image on CPU vs sub-second on a V100.
+without a GPU. Extraction is ~10 s/image on CPU vs sub-second on a V100.
 Step 3 is CPU-only and reads the cached descriptors.
 
 ---
