@@ -123,7 +123,6 @@ Vysotska et al.'s protocol.
 | `experiments/vysotska_sequence_matcher.py` | Vysotska et al. graph-based sequence matcher (shortest-path on DAG built from similarity matrix). |
 | `experiments/extract_dinov2_salad_all.py` | Descriptor extraction for all 6 datasets via `torch.hub.load("serizba/salad", "dinov2_salad")`; CPU fallback. |
 | `experiments/generate_pipeline_figure.py` | Regenerates `IEEE_RAL_VPR/fig8_method_pipeline.png`. |
-| `IEEE_RAL_VPR/` | Paper source (`RCC2025.tex`), bibliography, figures, generated PDF. |
 | `sequential_runner.py`, `demo.py`, `experiment_runner.py`, `test_runner.py`, `multi_dataset_runner.py` | RCC 2025 pipeline (EigenPlaces / CosPlace / PatchNetVLAD). Not used by the RAL paper. |
 
 All numbers in the paper come out of `experiments/final_all_datasets.py`;
