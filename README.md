@@ -1,7 +1,7 @@
 # Adaptive Per-Place Thresholding for Open-Set Visual Place Recognition
 
 Code accompanying the IEEE RAL submission from FRCV Lab, Fordham University
-(Nick Trinh, Damian Lyons). Paper source: [`Adaptive Thresholding for Visual Place Recognition using Negative Gaussian Mixture Statistics`](https://arxiv.org/abs/2512.09071).
+(Nick Trinh, Damian Lyons). Paper source: [`arXiv`](https://arxiv.org/abs/2512.09071).
 
 ---
 
@@ -26,7 +26,7 @@ work, fits a per-query threshold to a patch of the full similarity matrix.
 They need every query upfront and pay one threshold per query. Our
 thresholds are *properties of places*, computed once, fixed at evaluation.
 
-![Method pipeline](IEEE_RAL_VPR/fig8_method_pipeline.png)
+![Method pipeline](figures/fig8_method_pipeline.png)
 
 ---
 
