@@ -1,7 +1,10 @@
 # Adaptive Per-Place Thresholding for Open-Set Visual Place Recognition
 
 Code accompanying the IEEE RAL submission from FRCV Lab, Fordham University
-(Nick Trinh, Damian Lyons). Paper source: [`arXiv`](https://arxiv.org/abs/2512.09071).
+(Nick Trinh, Damian Lyons). 
+
+Previous paper: [`arXiv`](https://arxiv.org/abs/2512.09071).
+This paper: Not published yet.
 
 ---
 
