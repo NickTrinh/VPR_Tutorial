@@ -22,6 +22,17 @@
       "rejection": null,
       "n_distractor": 0
     },
+    "closed_VysotskaThresh": {
+      "P": 97.79,
+      "R": 99.59,
+      "F1": 98.68,
+      "TP": 487,
+      "FP": 11,
+      "FN": 2,
+      "TN": 0,
+      "rejection": null,
+      "n_distractor": 0
+    },
     "closed_Vysotska": {
       "P": 99.0,
       "R": 99.8,
@@ -53,6 +64,17 @@
       "FN": 70,
       "TN": 150,
       "rejection": 100.0,
+      "n_distractor": 150
+    },
+    "natural_VysotskaThresh": {
+      "P": 69.01,
+      "R": 99.13,
+      "F1": 81.38,
+      "TP": 343,
+      "FP": 154,
+      "FN": 3,
+      "TN": 0,
+      "rejection": 0.0,
       "n_distractor": 150
     },
     "natural_Vysotska": {
@@ -90,6 +112,17 @@
       "rejection": null,
       "n_distractor": 0
     },
+    "closed_VysotskaThresh": {
+      "P": 82.14,
+      "R": 98.2,
+      "F1": 89.46,
+      "TP": 437,
+      "FP": 95,
+      "FN": 8,
+      "TN": 0,
+      "rejection": null,
+      "n_distractor": 0
+    },
     "closed_Vysotska": {
       "P": 82.41,
       "R": 100.0,
@@ -121,6 +154,17 @@
       "FN": 10,
       "TN": 95,
       "rejection": 92.23,
+      "n_distractor": 103
+    },
+    "natural_VysotskaThresh": {
+      "P": 76.89,
+      "R": 97.97,
+      "F1": 86.16,
+      "TP": 386,
+      "FP": 116,
+      "FN": 8,
+      "TN": 34,
+      "rejection": 33.01,
       "n_distractor": 103
     },
     "natural_Vysotska": {
@@ -158,6 +202,17 @@
       "rejection": null,
       "n_distractor": 0
     },
+    "closed_VysotskaThresh": {
+      "P": 84.62,
+      "R": 100.0,
+      "F1": 91.67,
+      "TP": 572,
+      "FP": 104,
+      "FN": 0,
+      "TN": 0,
+      "rejection": null,
+      "n_distractor": 0
+    },
     "closed_Vysotska": {
       "P": 84.91,
       "R": 100.0,
@@ -189,6 +244,17 @@
       "FN": 63,
       "TN": 237,
       "rejection": 99.58,
+      "n_distractor": 238
+    },
+    "natural_VysotskaThresh": {
+      "P": 62.25,
+      "R": 100.0,
+      "F1": 76.73,
+      "TP": 404,
+      "FP": 245,
+      "FN": 0,
+      "TN": 27,
+      "rejection": 11.34,
       "n_distractor": 238
     },
     "natural_Vysotska": {
@@ -226,6 +292,17 @@
       "rejection": null,
       "n_distractor": 0
     },
+    "closed_VysotskaThresh": {
+      "P": 96.98,
+      "R": 99.48,
+      "F1": 98.22,
+      "TP": 193,
+      "FP": 6,
+      "FN": 1,
+      "TN": 0,
+      "rejection": null,
+      "n_distractor": 0
+    },
     "closed_Vysotska": {
       "P": 97.5,
       "R": 100.0,
@@ -257,6 +334,17 @@
       "FN": 5,
       "TN": 60,
       "rejection": 100.0,
+      "n_distractor": 60
+    },
+    "natural_VysotskaThresh": {
+      "P": 72.19,
+      "R": 99.26,
+      "F1": 83.59,
+      "TP": 135,
+      "FP": 52,
+      "FN": 1,
+      "TN": 12,
+      "rejection": 20.0,
       "n_distractor": 60
     },
     "natural_Vysotska": {
@@ -294,6 +382,17 @@
       "rejection": null,
       "n_distractor": 0
     },
+    "closed_VysotskaThresh": {
+      "P": 94.29,
+      "R": 100.0,
+      "F1": 97.06,
+      "TP": 363,
+      "FP": 22,
+      "FN": 0,
+      "TN": 0,
+      "rejection": null,
+      "n_distractor": 0
+    },
     "closed_Vysotska": {
       "P": 98.7,
       "R": 100.0,
@@ -325,6 +424,17 @@
       "FN": 73,
       "TN": 92,
       "rejection": 79.31,
+      "n_distractor": 116
+    },
+    "natural_VysotskaThresh": {
+      "P": 69.04,
+      "R": 100.0,
+      "F1": 81.69,
+      "TP": 252,
+      "FP": 113,
+      "FN": 0,
+      "TN": 20,
+      "rejection": 17.24,
       "n_distractor": 116
     },
     "natural_Vysotska": {
@@ -362,6 +472,17 @@
       "rejection": null,
       "n_distractor": 0
     },
+    "closed_VysotskaThresh": {
+      "P": 97.14,
+      "R": 100.0,
+      "F1": 98.55,
+      "TP": 204,
+      "FP": 6,
+      "FN": 0,
+      "TN": 0,
+      "rejection": null,
+      "n_distractor": 0
+    },
     "closed_Vysotska": {
       "P": 99.05,
       "R": 100.0,
@@ -393,6 +514,17 @@
       "FN": 1,
       "TN": 38,
       "rejection": 60.32,
+      "n_distractor": 63
+    },
+    "natural_VysotskaThresh": {
+      "P": 68.12,
+      "R": 100.0,
+      "F1": 81.03,
+      "TP": 141,
+      "FP": 66,
+      "FN": 0,
+      "TN": 3,
+      "rejection": 4.76,
       "n_distractor": 63
     },
     "natural_Vysotska": {

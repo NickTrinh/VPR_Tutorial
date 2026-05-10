@@ -130,6 +130,24 @@ def run_vysotska(S, fanout=5):
     return {q: r for q, r in matches.items() if r is not None}
 
 
+def run_vysotska_threshold_only(S):
+    """Vysotska's per-query adaptive threshold WITHOUT the sequence matcher.
+
+    For each query: accept argmax(S[q]) if S[q, argmax] >= threshold[q],
+    else reject as unknown. This isolates the thresholding component for
+    apples-to-apples comparison with our per-place thresholds.
+    """
+    vt = VysotskaDaptiveThreshold(patch_size=20)
+    best = np.argmax(S, axis=1)
+    thresholds, _ = vt.compute_thresholds(S, best_matches=best)
+    accepted = {}
+    for q in range(S.shape[0]):
+        ref_idx = int(best[q])
+        if S[q, ref_idx] >= thresholds[q]:
+            accepted[q] = ref_idx
+    return accepted
+
+
 def evaluate(predictions, genuine_queries, distractor_queries, gt_map, tolerance):
     """
     Evaluate predictions.
@@ -254,10 +272,16 @@ def run_dataset(name, ref_descs, query_descs, gt_map, tolerance,
     print(f"  Ours:         P={r['P']:.1f}% R={r['R']:.1f}% F1={r['F1']:.1f}%")
     results["closed_Ours"] = r
 
-    # Vysotska
+    # Vysotska threshold only (no sequence matcher)
+    vt_pred = run_vysotska_threshold_only(S_closed)
+    r = evaluate(vt_pred, genuine_closed, [], gt_map, tolerance)
+    print(f"  Vys (thresh): P={r['P']:.1f}% R={r['R']:.1f}% F1={r['F1']:.1f}%")
+    results["closed_VysotskaThresh"] = r
+
+    # Vysotska full pipeline
     vys_pred = run_vysotska(S_closed, fanout=fanout)
     r = evaluate(vys_pred, genuine_closed, [], gt_map, tolerance)
-    print(f"  Vysotska:     P={r['P']:.1f}% R={r['R']:.1f}% F1={r['F1']:.1f}%")
+    print(f"  Vys (full):   P={r['P']:.1f}% R={r['R']:.1f}% F1={r['F1']:.1f}%")
     results["closed_Vysotska"] = r
 
     # ── NATURAL OPEN-SET ──
@@ -310,10 +334,16 @@ def run_dataset(name, ref_descs, query_descs, gt_map, tolerance,
     print(f"  Ours:         P={r['P']:.1f}% R={r['R']:.1f}% F1={r['F1']:.1f}% Rej={r['rejection']:.1f}%")
     results["natural_Ours"] = r
 
-    # Vysotska
+    # Vysotska threshold only (no sequence matcher)
+    vt_pred_nat = run_vysotska_threshold_only(S_nat)
+    r = evaluate(vt_pred_nat, genuine_nat, distractor_nat, gt_map_trunc, tolerance)
+    print(f"  Vys (thresh): P={r['P']:.1f}% R={r['R']:.1f}% F1={r['F1']:.1f}% Rej={r['rejection']:.1f}%")
+    results["natural_VysotskaThresh"] = r
+
+    # Vysotska full pipeline
     vys_pred_nat = run_vysotska(S_nat, fanout=fanout)
     r = evaluate(vys_pred_nat, genuine_nat, distractor_nat, gt_map_trunc, tolerance)
-    print(f"  Vysotska:     P={r['P']:.1f}% R={r['R']:.1f}% F1={r['F1']:.1f}% Rej={r['rejection']:.1f}%")
+    print(f"  Vys (full):   P={r['P']:.1f}% R={r['R']:.1f}% F1={r['F1']:.1f}% Rej={r['rejection']:.1f}%")
     results["natural_Vysotska"] = r
 
     return results
@@ -381,25 +411,30 @@ def main():
     print(f"{'='*70}")
 
     print(f"\nClosed-Set F1%:")
-    print(f"  {'Dataset':<15} {'Baseline':>10} {'Ours':>10} {'Vysotska':>10}")
-    print(f"  {'─'*47}")
+    print(f"  {'Dataset':<15} {'Baseline':>10} {'Ours':>10} {'Vys-thr':>10} {'Vys-full':>10}")
+    print(f"  {'─'*59}")
     for name in ds_order:
         r = all_results[name]
         bl = r["closed_Baseline"]["F1"]
         ours = r["closed_Ours"]["F1"]
+        vt = r["closed_VysotskaThresh"]["F1"]
         vys = r["closed_Vysotska"]["F1"]
-        print(f"  {name:<15} {bl:>9.1f}% {ours:>9.1f}% {vys:>9.1f}%")
+        print(f"  {name:<15} {bl:>9.1f}% {ours:>9.1f}% {vt:>9.1f}% {vys:>9.1f}%")
 
     print(f"\nNatural Open-Set (70% ref map):")
-    print(f"  {'Dataset':<15} {'Ours F1':>8} {'Ours Rej':>9} {'Vys F1':>8} {'Vys Rej':>9}")
-    print(f"  {'─'*52}")
+    print(f"  {'Dataset':<15} {'Ours F1':>8} {'Ours Rej':>9} "
+          f"{'VT F1':>8} {'VT Rej':>9} {'Vys F1':>8} {'Vys Rej':>9}")
+    print(f"  {'─'*72}")
     for name in ds_order:
         r = all_results[name]
         of1 = r["natural_Ours"]["F1"]
         orej = r["natural_Ours"]["rejection"]
+        vtf1 = r["natural_VysotskaThresh"]["F1"]
+        vtrej = r["natural_VysotskaThresh"]["rejection"]
         vf1 = r["natural_Vysotska"]["F1"]
         vrej = r["natural_Vysotska"]["rejection"]
-        print(f"  {name:<15} {of1:>7.1f}% {orej:>8.1f}% {vf1:>7.1f}% {vrej:>8.1f}%")
+        print(f"  {name:<15} {of1:>7.1f}% {orej:>8.1f}% "
+              f"{vtf1:>7.1f}% {vtrej:>8.1f}% {vf1:>7.1f}% {vrej:>8.1f}%")
 
     out_path = "results/final_all_datasets_dinov2salad.json"
     os.makedirs("results", exist_ok=True)
