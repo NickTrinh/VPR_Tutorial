@@ -100,8 +100,8 @@ echo "[3/3] Nordland-500 — manual step required"
 echo "  The 500-image subset is not auto-downloaded (HuggingFace gated/LFS)."
 echo "  Download from: https://huggingface.co/datasets/Somayeh-h/Nordland"
 echo "  Place the first 500 winter and summer frames (1 fps) as:"
-echo "    images/Nordland_Mini/winter/*.jpg"
-echo "    images/Nordland_Mini/summer/*.jpg"
+echo "    images/Nordland-500/winter/*.png"
+echo "    images/Nordland-500/summer/*.png"
 echo
 
 echo "=========================================="

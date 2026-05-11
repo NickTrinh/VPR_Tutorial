@@ -1,15 +1,21 @@
 """
-Extract DINOv2 SALAD descriptors for all datasets.
+Extract EigenPlaces descriptors for all six datasets, freshly.
 
-Must be run on a GPU node.
+Same image sources and target cache paths as `extract_dinov2_salad_all.py`,
+except outputs go to `<cache>/eigenplaces/` and image counts are aligned
+with the SALAD caches so the comparison is apples-to-apples.
+
+Existing eigenplaces caches under any of the target paths are deleted
+before extraction so stale or partial caches cannot mix with fresh ones.
 
 Usage:
-    python -m experiments.extract_dinov2_salad_all
+    python -u -m experiments.extract_eigenplaces_all
 """
 
 import os
 import sys
 import pickle
+import shutil
 import time
 
 import numpy as np
@@ -20,74 +26,73 @@ from tqdm import tqdm
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
-BATCH_SIZE = 32
+BATCH_SIZE = 16
 
 DATASETS = {
     "nordland_winter": {
         "image_dir": "images/Nordland-500/winter",
-        "cache_dir": "cache/Nordland-500/winter/dinov2-salad",
+        "cache_dir": "cache/Nordland-500/winter/eigenplaces",
         "n": 500,
     },
     "nordland_summer": {
         "image_dir": "images/Nordland-500/summer",
-        "cache_dir": "cache/Nordland-500/summer/dinov2-salad",
+        "cache_dir": "cache/Nordland-500/summer/eigenplaces",
         "n": 500,
     },
     "gardenspoint_day_left": {
         "image_dir": "images/GardensPoint/day_left",
-        "cache_dir": "cache/GardensPoint/day_left/dinov2-salad",
+        "cache_dir": "cache/GardensPoint/day_left/eigenplaces",
         "n": 200,
     },
     "gardenspoint_day_right": {
         "image_dir": "images/GardensPoint/day_right",
-        "cache_dir": "cache/GardensPoint/day_right/dinov2-salad",
+        "cache_dir": "cache/GardensPoint/day_right/eigenplaces",
         "n": 200,
     },
     "sfu_dry": {
         "image_dir": "images/SFU/dry",
-        "cache_dir": "cache/SFU/dry/dinov2-salad",
+        "cache_dir": "cache/SFU/dry/eigenplaces",
         "n": 385,
     },
     "sfu_jan": {
         "image_dir": "images/SFU/jan",
-        "cache_dir": "cache/SFU/jan/dinov2-salad",
+        "cache_dir": "cache/SFU/jan/eigenplaces",
         "n": 385,
     },
     "bonn_reference": {
         "image_dir": "images/bonn_example/reference/images",
-        "cache_dir": "cache/Bonn/reference/dinov2-salad",
+        "cache_dir": "cache/Bonn/reference/eigenplaces",
         "n": None,
     },
     "bonn_query": {
         "image_dir": "images/bonn_example/query/images",
-        "cache_dir": "cache/Bonn/query/dinov2-salad",
+        "cache_dir": "cache/Bonn/query/eigenplaces",
         "n": None,
     },
     "freiburg_reference": {
         "image_dir": "images/freiburg_example/reference/images",
-        "cache_dir": "cache/Freiburg/reference/dinov2-salad",
+        "cache_dir": "cache/Freiburg/reference/eigenplaces",
         "n": None,
     },
     "freiburg_query": {
         "image_dir": "images/freiburg_example/query/images",
-        "cache_dir": "cache/Freiburg/query/dinov2-salad",
+        "cache_dir": "cache/Freiburg/query/eigenplaces",
         "n": None,
     },
     "essex3in1_reference": {
         "image_dir": "images/ESSEX3IN1/reference_combined",
-        "cache_dir": "cache/ESSEX3IN1/reference/dinov2-salad",
+        "cache_dir": "cache/ESSEX3IN1/reference/eigenplaces",
         "n": 210,
     },
     "essex3in1_query": {
         "image_dir": "images/ESSEX3IN1/query_combined",
-        "cache_dir": "cache/ESSEX3IN1/query/dinov2-salad",
+        "cache_dir": "cache/ESSEX3IN1/query/eigenplaces",
         "n": 210,
     },
 }
 
 
 def get_image_paths(image_dir, n):
-    """Return up to n image paths in image_dir; n=None means all of them."""
     all_files = sorted(os.listdir(image_dir))
     all_files = [f for f in all_files if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
     if n is not None:
@@ -96,28 +101,20 @@ def get_image_paths(image_dir, n):
 
 
 def extract_features(image_paths, cache_dir, model, preprocess, device):
+    if os.path.exists(cache_dir):
+        shutil.rmtree(cache_dir)
     os.makedirs(cache_dir, exist_ok=True)
 
-    to_extract = []
-    for i, path in enumerate(image_paths):
-        cache_path = os.path.join(cache_dir, f"img_{i}_descriptor.pkl")
-        if not os.path.exists(cache_path):
-            to_extract.append((i, path))
-
-    if not to_extract:
-        print(f"  All {len(image_paths)} already cached in {cache_dir}")
-        return
-
-    print(f"  Extracting {len(to_extract)}/{len(image_paths)} descriptors...")
+    print(f"  Extracting {len(image_paths)} descriptors...")
     model.eval()
+    t0 = time.time()
 
-    for batch_start in tqdm(range(0, len(to_extract), BATCH_SIZE)):
-        batch = to_extract[batch_start:batch_start + BATCH_SIZE]
+    for batch_start in tqdm(range(0, len(image_paths), BATCH_SIZE)):
+        batch = image_paths[batch_start:batch_start + BATCH_SIZE]
         imgs = []
-        for _, path in batch:
+        for path in batch:
             img = Image.open(path).convert("RGB")
             imgs.append(preprocess(img))
-
         batch_tensor = torch.stack(imgs).to(device)
         with torch.no_grad():
             if device.type == "cuda":
@@ -127,18 +124,24 @@ def extract_features(image_paths, cache_dir, model, preprocess, device):
                 features = model(batch_tensor)
 
         features_np = features.cpu().numpy().astype(np.float32)
+        norms = np.linalg.norm(features_np, axis=1, keepdims=True)
+        norms[norms == 0] = 1.0
+        features_np = features_np / norms
 
-        for j, (idx, _) in enumerate(batch):
+        for j, _ in enumerate(batch):
+            idx = batch_start + j
             cache_path = os.path.join(cache_dir, f"img_{idx}_descriptor.pkl")
             with open(cache_path, "wb") as f:
                 pickle.dump({"descriptor": features_np[j]}, f)
 
-    print(f"  Done. Cached to {cache_dir}")
+    dt = time.time() - t0
+    print(f"  Done. {len(image_paths)} desc in {dt:.1f}s "
+          f"({dt/max(len(image_paths),1):.2f}s/img)  →  {cache_dir}")
 
 
 def main():
     print("=" * 60)
-    print("DINOv2 SALAD Feature Extraction — All Datasets")
+    print("EigenPlaces Feature Extraction — All Datasets (fresh)")
     print("=" * 60)
 
     if torch.cuda.is_available():
@@ -146,30 +149,36 @@ def main():
         print(f"Device: {device} ({torch.cuda.get_device_name()})")
     else:
         device = torch.device("cpu")
-        print("Device: cpu (CUDA unavailable — extraction will be much slower)")
+        print("Device: cpu (extraction will be slower than on GPU)")
 
-    print("\nLoading DINOv2 SALAD model...")
+    print("\nLoading EigenPlaces model (gmberton/eigenplaces, ResNet50, 2048d)...")
     t0 = time.time()
-    model = torch.hub.load("serizba/salad", "dinov2_salad")
+    model = torch.hub.load(
+        "gmberton/eigenplaces", "get_trained_model",
+        backbone="ResNet50", fc_output_dim=2048,
+    )
     model = model.to(device)
     model.eval()
     print(f"  Model loaded in {time.time() - t0:.1f}s")
 
     preprocess = transforms.Compose([
-        transforms.Resize((322, 322),
+        transforms.Resize((480, 480),
                           interpolation=transforms.InterpolationMode.BILINEAR),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406],
                              std=[0.229, 0.224, 0.225]),
     ])
 
+    only = set(os.environ.get("ONLY", "").split(",")) - {""}
     for name, cfg in DATASETS.items():
+        if only and name not in only:
+            continue
         print(f"\n--- {name} ---")
         if not os.path.isdir(cfg["image_dir"]):
             print(f"  SKIP: {cfg['image_dir']} not found")
             continue
         paths = get_image_paths(cfg["image_dir"], cfg["n"])
-        print(f"  Found {len(paths)} images")
+        print(f"  Found {len(paths)} images in {cfg['image_dir']}")
         extract_features(paths, cfg["cache_dir"], model, preprocess, device)
 
     print(f"\n{'='*60}")

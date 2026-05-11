@@ -357,8 +357,8 @@ def main():
     # 1. Nordland-500 (tol=2 to match Vysotska evaluation)
     ref, query, gt, tol = load_sequential_dataset(
         "Nordland-500",
-        "cache/Nordland_salad/winter/dinov2_salad",
-        "cache/Nordland_salad/summer/dinov2_salad",
+        "cache/Nordland-500/winter/dinov2-salad",
+        "cache/Nordland-500/summer/dinov2-salad",
         500, 500, tolerance=2
     )
     all_results["Nordland-500"] = run_dataset("Nordland-500", ref, query, gt, tol, fanout=5)

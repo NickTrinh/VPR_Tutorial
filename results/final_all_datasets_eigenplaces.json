@@ -1,0 +1,542 @@
+{
+  "Nordland-500": {
+    "closed_Baseline": {
+      "P": 91.4,
+      "R": 100.0,
+      "F1": 95.51,
+      "TP": 457,
+      "FP": 43,
+      "FN": 0,
+      "TN": 0,
+      "rejection": null,
+      "n_distractor": 0
+    },
+    "closed_Ours": {
+      "P": 90.39,
+      "R": 75.16,
+      "F1": 82.08,
+      "TP": 348,
+      "FP": 37,
+      "FN": 115,
+      "TN": 0,
+      "rejection": null,
+      "n_distractor": 0
+    },
+    "closed_VysotskaThresh": {
+      "P": 91.4,
+      "R": 100.0,
+      "F1": 95.51,
+      "TP": 457,
+      "FP": 43,
+      "FN": 0,
+      "TN": 0,
+      "rejection": null,
+      "n_distractor": 0
+    },
+    "closed_Vysotska": {
+      "P": 97.97,
+      "R": 98.37,
+      "F1": 98.17,
+      "TP": 482,
+      "FP": 10,
+      "FN": 8,
+      "TN": 0,
+      "rejection": null,
+      "n_distractor": 0
+    },
+    "natural_Baseline": {
+      "P": 65.2,
+      "R": 100.0,
+      "F1": 78.93,
+      "TP": 326,
+      "FP": 174,
+      "FN": 0,
+      "TN": 0,
+      "rejection": 0.0,
+      "n_distractor": 150
+    },
+    "natural_Ours": {
+      "P": 93.94,
+      "R": 64.2,
+      "F1": 76.27,
+      "TP": 217,
+      "FP": 14,
+      "FN": 121,
+      "TN": 148,
+      "rejection": 98.67,
+      "n_distractor": 150
+    },
+    "natural_VysotskaThresh": {
+      "P": 65.46,
+      "R": 100.0,
+      "F1": 79.13,
+      "TP": 326,
+      "FP": 172,
+      "FN": 0,
+      "TN": 2,
+      "rejection": 1.33,
+      "n_distractor": 150
+    },
+    "natural_Vysotska": {
+      "P": 81.34,
+      "R": 98.84,
+      "F1": 89.24,
+      "TP": 340,
+      "FP": 78,
+      "FN": 4,
+      "TN": 78,
+      "rejection": 52.0,
+      "n_distractor": 150
+    }
+  },
+  "Bonn": {
+    "closed_Baseline": {
+      "P": 85.19,
+      "R": 100.0,
+      "F1": 92.0,
+      "TP": 460,
+      "FP": 80,
+      "FN": 0,
+      "TN": 0,
+      "rejection": null,
+      "n_distractor": 0
+    },
+    "closed_Ours": {
+      "P": 84.22,
+      "R": 65.49,
+      "F1": 73.68,
+      "TP": 315,
+      "FP": 59,
+      "FN": 166,
+      "TN": 0,
+      "rejection": null,
+      "n_distractor": 0
+    },
+    "closed_VysotskaThresh": {
+      "P": 84.96,
+      "R": 93.95,
+      "F1": 89.23,
+      "TP": 435,
+      "FP": 77,
+      "FN": 28,
+      "TN": 0,
+      "rejection": null,
+      "n_distractor": 0
+    },
+    "closed_Vysotska": {
+      "P": 85.37,
+      "R": 100.0,
+      "F1": 92.11,
+      "TP": 461,
+      "FP": 79,
+      "FN": 0,
+      "TN": 0,
+      "rejection": null,
+      "n_distractor": 0
+    },
+    "natural_Baseline": {
+      "P": 73.9,
+      "R": 100.0,
+      "F1": 84.99,
+      "TP": 402,
+      "FP": 142,
+      "FN": 0,
+      "TN": 0,
+      "rejection": 0.0,
+      "n_distractor": 103
+    },
+    "natural_Ours": {
+      "P": 87.0,
+      "R": 62.89,
+      "F1": 73.01,
+      "TP": 261,
+      "FP": 39,
+      "FN": 154,
+      "TN": 90,
+      "rejection": 87.38,
+      "n_distractor": 103
+    },
+    "natural_VysotskaThresh": {
+      "P": 74.65,
+      "R": 93.09,
+      "F1": 82.86,
+      "TP": 377,
+      "FP": 128,
+      "FN": 28,
+      "TN": 11,
+      "rejection": 10.68,
+      "n_distractor": 103
+    },
+    "natural_Vysotska": {
+      "P": 88.57,
+      "R": 100.0,
+      "F1": 93.94,
+      "TP": 403,
+      "FP": 52,
+      "FN": 0,
+      "TN": 89,
+      "rejection": 86.41,
+      "n_distractor": 103
+    }
+  },
+  "Freiburg": {
+    "closed_Baseline": {
+      "P": 44.38,
+      "R": 100.0,
+      "F1": 61.48,
+      "TP": 300,
+      "FP": 376,
+      "FN": 0,
+      "TN": 0,
+      "rejection": null,
+      "n_distractor": 0
+    },
+    "closed_Ours": {
+      "P": 28.2,
+      "R": 18.82,
+      "F1": 22.57,
+      "TP": 86,
+      "FP": 219,
+      "FN": 371,
+      "TN": 0,
+      "rejection": null,
+      "n_distractor": 0
+    },
+    "closed_VysotskaThresh": {
+      "P": 43.78,
+      "R": 97.01,
+      "F1": 60.33,
+      "TP": 292,
+      "FP": 375,
+      "FN": 9,
+      "TN": 0,
+      "rejection": null,
+      "n_distractor": 0
+    },
+    "closed_Vysotska": {
+      "P": 44.82,
+      "R": 100.0,
+      "F1": 61.9,
+      "TP": 303,
+      "FP": 373,
+      "FN": 0,
+      "TN": 0,
+      "rejection": null,
+      "n_distractor": 0
+    },
+    "natural_Baseline": {
+      "P": 28.85,
+      "R": 100.0,
+      "F1": 44.78,
+      "TP": 195,
+      "FP": 481,
+      "FN": 0,
+      "TN": 0,
+      "rejection": 0.0,
+      "n_distractor": 238
+    },
+    "natural_Ours": {
+      "P": 71.05,
+      "R": 12.89,
+      "F1": 21.82,
+      "TP": 54,
+      "FP": 22,
+      "FN": 365,
+      "TN": 235,
+      "rejection": 98.74,
+      "n_distractor": 238
+    },
+    "natural_VysotskaThresh": {
+      "P": 29.8,
+      "R": 99.49,
+      "F1": 45.86,
+      "TP": 194,
+      "FP": 457,
+      "FN": 1,
+      "TN": 24,
+      "rejection": 10.08,
+      "n_distractor": 238
+    },
+    "natural_Vysotska": {
+      "P": 30.51,
+      "R": 100.0,
+      "F1": 46.75,
+      "TP": 198,
+      "FP": 451,
+      "FN": 0,
+      "TN": 27,
+      "rejection": 11.34,
+      "n_distractor": 238
+    }
+  },
+  "GardensPoint": {
+    "closed_Baseline": {
+      "P": 97.0,
+      "R": 100.0,
+      "F1": 98.48,
+      "TP": 194,
+      "FP": 6,
+      "FN": 0,
+      "TN": 0,
+      "rejection": null,
+      "n_distractor": 0
+    },
+    "closed_Ours": {
+      "P": 94.87,
+      "R": 97.37,
+      "F1": 96.1,
+      "TP": 185,
+      "FP": 10,
+      "FN": 5,
+      "TN": 0,
+      "rejection": null,
+      "n_distractor": 0
+    },
+    "closed_VysotskaThresh": {
+      "P": 96.98,
+      "R": 99.48,
+      "F1": 98.22,
+      "TP": 193,
+      "FP": 6,
+      "FN": 1,
+      "TN": 0,
+      "rejection": null,
+      "n_distractor": 0
+    },
+    "closed_Vysotska": {
+      "P": 98.0,
+      "R": 100.0,
+      "F1": 98.99,
+      "TP": 196,
+      "FP": 4,
+      "FN": 0,
+      "TN": 0,
+      "rejection": null,
+      "n_distractor": 0
+    },
+    "natural_Baseline": {
+      "P": 69.0,
+      "R": 100.0,
+      "F1": 81.66,
+      "TP": 138,
+      "FP": 62,
+      "FN": 0,
+      "TN": 0,
+      "rejection": 0.0,
+      "n_distractor": 60
+    },
+    "natural_Ours": {
+      "P": 93.48,
+      "R": 96.27,
+      "F1": 94.85,
+      "TP": 129,
+      "FP": 9,
+      "FN": 5,
+      "TN": 57,
+      "rejection": 95.0,
+      "n_distractor": 60
+    },
+    "natural_VysotskaThresh": {
+      "P": 78.74,
+      "R": 99.28,
+      "F1": 87.82,
+      "TP": 137,
+      "FP": 37,
+      "FN": 1,
+      "TN": 25,
+      "rejection": 41.67,
+      "n_distractor": 60
+    },
+    "natural_Vysotska": {
+      "P": 97.2,
+      "R": 100.0,
+      "F1": 98.58,
+      "TP": 139,
+      "FP": 4,
+      "FN": 0,
+      "TN": 57,
+      "rejection": 95.0,
+      "n_distractor": 60
+    }
+  },
+  "SFU": {
+    "closed_Baseline": {
+      "P": 81.82,
+      "R": 100.0,
+      "F1": 90.0,
+      "TP": 315,
+      "FP": 70,
+      "FN": 0,
+      "TN": 0,
+      "rejection": null,
+      "n_distractor": 0
+    },
+    "closed_Ours": {
+      "P": 55.24,
+      "R": 85.9,
+      "F1": 67.24,
+      "TP": 195,
+      "FP": 158,
+      "FN": 32,
+      "TN": 0,
+      "rejection": null,
+      "n_distractor": 0
+    },
+    "closed_VysotskaThresh": {
+      "P": 81.82,
+      "R": 100.0,
+      "F1": 90.0,
+      "TP": 315,
+      "FP": 70,
+      "FN": 0,
+      "TN": 0,
+      "rejection": null,
+      "n_distractor": 0
+    },
+    "closed_Vysotska": {
+      "P": 97.91,
+      "R": 99.47,
+      "F1": 98.68,
+      "TP": 375,
+      "FP": 8,
+      "FN": 2,
+      "TN": 0,
+      "rejection": null,
+      "n_distractor": 0
+    },
+    "natural_Baseline": {
+      "P": 54.81,
+      "R": 100.0,
+      "F1": 70.81,
+      "TP": 211,
+      "FP": 174,
+      "FN": 0,
+      "TN": 0,
+      "rejection": 0.0,
+      "n_distractor": 116
+    },
+    "natural_Ours": {
+      "P": 44.44,
+      "R": 65.12,
+      "F1": 52.83,
+      "TP": 112,
+      "FP": 140,
+      "FN": 60,
+      "TN": 73,
+      "rejection": 62.93,
+      "n_distractor": 116
+    },
+    "natural_VysotskaThresh": {
+      "P": 57.65,
+      "R": 100.0,
+      "F1": 73.14,
+      "TP": 211,
+      "FP": 155,
+      "FN": 0,
+      "TN": 19,
+      "rejection": 16.38,
+      "n_distractor": 116
+    },
+    "natural_Vysotska": {
+      "P": 76.23,
+      "R": 99.62,
+      "F1": 86.37,
+      "TP": 263,
+      "FP": 82,
+      "FN": 1,
+      "TN": 39,
+      "rejection": 33.62,
+      "n_distractor": 116
+    }
+  },
+  "ESSEX3IN1": {
+    "closed_Baseline": {
+      "P": 92.86,
+      "R": 100.0,
+      "F1": 96.3,
+      "TP": 195,
+      "FP": 15,
+      "FN": 0,
+      "TN": 0,
+      "rejection": null,
+      "n_distractor": 0
+    },
+    "closed_Ours": {
+      "P": 76.7,
+      "R": 97.53,
+      "F1": 85.87,
+      "TP": 158,
+      "FP": 48,
+      "FN": 4,
+      "TN": 0,
+      "rejection": null,
+      "n_distractor": 0
+    },
+    "closed_VysotskaThresh": {
+      "P": 93.3,
+      "R": 99.49,
+      "F1": 96.3,
+      "TP": 195,
+      "FP": 14,
+      "FN": 1,
+      "TN": 0,
+      "rejection": null,
+      "n_distractor": 0
+    },
+    "closed_Vysotska": {
+      "P": 99.04,
+      "R": 99.04,
+      "F1": 99.04,
+      "TP": 206,
+      "FP": 2,
+      "FN": 2,
+      "TN": 0,
+      "rejection": null,
+      "n_distractor": 0
+    },
+    "natural_Baseline": {
+      "P": 66.67,
+      "R": 100.0,
+      "F1": 80.0,
+      "TP": 140,
+      "FP": 70,
+      "FN": 0,
+      "TN": 0,
+      "rejection": 0.0,
+      "n_distractor": 63
+    },
+    "natural_Ours": {
+      "P": 63.98,
+      "R": 96.75,
+      "F1": 77.02,
+      "TP": 119,
+      "FP": 67,
+      "FN": 4,
+      "TN": 20,
+      "rejection": 31.75,
+      "n_distractor": 63
+    },
+    "natural_VysotskaThresh": {
+      "P": 67.31,
+      "R": 99.29,
+      "F1": 80.23,
+      "TP": 140,
+      "FP": 68,
+      "FN": 1,
+      "TN": 1,
+      "rejection": 1.59,
+      "n_distractor": 63
+    },
+    "natural_Vysotska": {
+      "P": 78.8,
+      "R": 99.32,
+      "F1": 87.88,
+      "TP": 145,
+      "FP": 39,
+      "FN": 1,
+      "TN": 25,
+      "rejection": 39.68,
+      "n_distractor": 63
+    }
+  }
+}

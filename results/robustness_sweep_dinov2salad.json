@@ -1,0 +1,714 @@
+{
+  "alpha": {
+    "1.0": {
+      "Nordland-500": {
+        "F1": 87.46,
+        "rejection": 100.0,
+        "P": 97.14,
+        "R": 79.53,
+        "n_places": 34
+      },
+      "Bonn": {
+        "F1": 92.07,
+        "rejection": 92.23,
+        "P": 87.24,
+        "R": 97.46,
+        "n_places": 21
+      },
+      "Freiburg": {
+        "F1": 88.86,
+        "rejection": 99.58,
+        "P": 92.13,
+        "R": 85.82,
+        "n_places": 19
+      },
+      "GardensPoint": {
+        "F1": 95.91,
+        "rejection": 100.0,
+        "P": 95.56,
+        "R": 96.27,
+        "n_places": 16
+      },
+      "SFU": {
+        "F1": 71.77,
+        "rejection": 79.31,
+        "P": 74.55,
+        "R": 69.2,
+        "n_places": 51
+      },
+      "ESSEX3IN1": {
+        "F1": 80.14,
+        "rejection": 60.32,
+        "P": 67.25,
+        "R": 99.14,
+        "n_places": 30
+      }
+    },
+    "1.25": {
+      "Nordland-500": {
+        "F1": 87.46,
+        "rejection": 100.0,
+        "P": 97.14,
+        "R": 79.53,
+        "n_places": 34
+      },
+      "Bonn": {
+        "F1": 92.07,
+        "rejection": 92.23,
+        "P": 87.24,
+        "R": 97.46,
+        "n_places": 21
+      },
+      "Freiburg": {
+        "F1": 88.86,
+        "rejection": 99.58,
+        "P": 92.13,
+        "R": 85.82,
+        "n_places": 19
+      },
+      "GardensPoint": {
+        "F1": 95.91,
+        "rejection": 100.0,
+        "P": 95.56,
+        "R": 96.27,
+        "n_places": 16
+      },
+      "SFU": {
+        "F1": 71.77,
+        "rejection": 79.31,
+        "P": 74.55,
+        "R": 69.2,
+        "n_places": 51
+      },
+      "ESSEX3IN1": {
+        "F1": 80.14,
+        "rejection": 60.32,
+        "P": 67.25,
+        "R": 99.14,
+        "n_places": 30
+      }
+    },
+    "1.5": {
+      "Nordland-500": {
+        "F1": 87.1,
+        "rejection": 100.0,
+        "P": 96.43,
+        "R": 79.41,
+        "n_places": 33
+      },
+      "Bonn": {
+        "F1": 92.07,
+        "rejection": 92.23,
+        "P": 87.24,
+        "R": 97.46,
+        "n_places": 21
+      },
+      "Freiburg": {
+        "F1": 88.01,
+        "rejection": 99.58,
+        "P": 91.76,
+        "R": 84.56,
+        "n_places": 14
+      },
+      "GardensPoint": {
+        "F1": 95.91,
+        "rejection": 100.0,
+        "P": 95.56,
+        "R": 96.27,
+        "n_places": 16
+      },
+      "SFU": {
+        "F1": 71.77,
+        "rejection": 79.31,
+        "P": 74.55,
+        "R": 69.2,
+        "n_places": 51
+      },
+      "ESSEX3IN1": {
+        "F1": 80.14,
+        "rejection": 60.32,
+        "P": 67.25,
+        "R": 99.14,
+        "n_places": 30
+      }
+    },
+    "1.75": {
+      "Nordland-500": {
+        "F1": 87.1,
+        "rejection": 100.0,
+        "P": 96.43,
+        "R": 79.41,
+        "n_places": 33
+      },
+      "Bonn": {
+        "F1": 92.07,
+        "rejection": 92.23,
+        "P": 87.24,
+        "R": 97.46,
+        "n_places": 21
+      },
+      "Freiburg": {
+        "F1": 88.01,
+        "rejection": 99.58,
+        "P": 91.27,
+        "R": 84.98,
+        "n_places": 13
+      },
+      "GardensPoint": {
+        "F1": 95.91,
+        "rejection": 100.0,
+        "P": 95.56,
+        "R": 96.27,
+        "n_places": 16
+      },
+      "SFU": {
+        "F1": 71.77,
+        "rejection": 79.31,
+        "P": 74.55,
+        "R": 69.2,
+        "n_places": 51
+      },
+      "ESSEX3IN1": {
+        "F1": 80.14,
+        "rejection": 60.32,
+        "P": 67.25,
+        "R": 99.14,
+        "n_places": 30
+      }
+    },
+    "2.0": {
+      "Nordland-500": {
+        "F1": 87.1,
+        "rejection": 100.0,
+        "P": 96.43,
+        "R": 79.41,
+        "n_places": 33
+      },
+      "Bonn": {
+        "F1": 92.07,
+        "rejection": 92.23,
+        "P": 87.24,
+        "R": 97.46,
+        "n_places": 21
+      },
+      "Freiburg": {
+        "F1": 88.01,
+        "rejection": 99.58,
+        "P": 91.27,
+        "R": 84.98,
+        "n_places": 13
+      },
+      "GardensPoint": {
+        "F1": 95.91,
+        "rejection": 100.0,
+        "P": 95.56,
+        "R": 96.27,
+        "n_places": 16
+      },
+      "SFU": {
+        "F1": 71.77,
+        "rejection": 79.31,
+        "P": 74.55,
+        "R": 69.2,
+        "n_places": 51
+      },
+      "ESSEX3IN1": {
+        "F1": 80.14,
+        "rejection": 60.32,
+        "P": 67.25,
+        "R": 99.14,
+        "n_places": 30
+      }
+    }
+  },
+  "m": {
+    "2": {
+      "Nordland-500": {
+        "F1": 87.1,
+        "rejection": 100.0,
+        "P": 96.43,
+        "R": 79.41,
+        "n_places": 33
+      },
+      "Bonn": {
+        "F1": 92.07,
+        "rejection": 92.23,
+        "P": 87.24,
+        "R": 97.46,
+        "n_places": 21
+      },
+      "Freiburg": {
+        "F1": 88.01,
+        "rejection": 99.58,
+        "P": 91.76,
+        "R": 84.56,
+        "n_places": 14
+      },
+      "GardensPoint": {
+        "F1": 95.91,
+        "rejection": 100.0,
+        "P": 95.56,
+        "R": 96.27,
+        "n_places": 16
+      },
+      "SFU": {
+        "F1": 71.77,
+        "rejection": 79.31,
+        "P": 74.55,
+        "R": 69.2,
+        "n_places": 51
+      },
+      "ESSEX3IN1": {
+        "F1": 80.14,
+        "rejection": 60.32,
+        "P": 67.25,
+        "R": 99.14,
+        "n_places": 30
+      }
+    },
+    "3": {
+      "Nordland-500": {
+        "F1": 87.1,
+        "rejection": 100.0,
+        "P": 96.43,
+        "R": 79.41,
+        "n_places": 33
+      },
+      "Bonn": {
+        "F1": 92.07,
+        "rejection": 92.23,
+        "P": 87.24,
+        "R": 97.46,
+        "n_places": 21
+      },
+      "Freiburg": {
+        "F1": 88.01,
+        "rejection": 99.58,
+        "P": 91.76,
+        "R": 84.56,
+        "n_places": 14
+      },
+      "GardensPoint": {
+        "F1": 97.06,
+        "rejection": 100.0,
+        "P": 97.78,
+        "R": 96.35,
+        "n_places": 15
+      },
+      "SFU": {
+        "F1": 71.77,
+        "rejection": 79.31,
+        "P": 74.55,
+        "R": 69.2,
+        "n_places": 51
+      },
+      "ESSEX3IN1": {
+        "F1": 0.0,
+        "rejection": 100.0,
+        "P": 0.0,
+        "R": 0.0,
+        "n_places": 1
+      }
+    },
+    "4": {
+      "Nordland-500": {
+        "F1": 87.1,
+        "rejection": 100.0,
+        "P": 96.43,
+        "R": 79.41,
+        "n_places": 33
+      },
+      "Bonn": {
+        "F1": 92.07,
+        "rejection": 92.23,
+        "P": 87.24,
+        "R": 97.46,
+        "n_places": 20
+      },
+      "Freiburg": {
+        "F1": 88.01,
+        "rejection": 99.58,
+        "P": 91.76,
+        "R": 84.56,
+        "n_places": 14
+      },
+      "GardensPoint": {
+        "F1": 96.3,
+        "rejection": 100.0,
+        "P": 96.3,
+        "R": 96.3,
+        "n_places": 13
+      },
+      "SFU": {
+        "F1": 70.93,
+        "rejection": 79.31,
+        "P": 73.52,
+        "R": 68.51,
+        "n_places": 51
+      },
+      "ESSEX3IN1": {
+        "F1": 0.0,
+        "rejection": 100.0,
+        "P": 0.0,
+        "R": 0.0,
+        "n_places": 1
+      }
+    }
+  },
+  "h": {
+    "1": {
+      "Nordland-500": {
+        "F1": 86.22,
+        "rejection": 96.67,
+        "P": 92.76,
+        "R": 80.54,
+        "n_places": 34
+      },
+      "Bonn": {
+        "F1": 92.07,
+        "rejection": 92.23,
+        "P": 87.24,
+        "R": 97.46,
+        "n_places": 22
+      },
+      "Freiburg": {
+        "F1": 87.44,
+        "rejection": 99.58,
+        "P": 91.67,
+        "R": 83.58,
+        "n_places": 14
+      },
+      "GardensPoint": {
+        "F1": 97.06,
+        "rejection": 100.0,
+        "P": 97.78,
+        "R": 96.35,
+        "n_places": 16
+      },
+      "SFU": {
+        "F1": 77.41,
+        "rejection": 79.31,
+        "P": 74.6,
+        "R": 80.43,
+        "n_places": 70
+      },
+      "ESSEX3IN1": {
+        "F1": 79.21,
+        "rejection": 42.86,
+        "P": 65.93,
+        "R": 99.17,
+        "n_places": 60
+      }
+    },
+    "2": {
+      "Nordland-500": {
+        "F1": 87.1,
+        "rejection": 100.0,
+        "P": 96.43,
+        "R": 79.41,
+        "n_places": 33
+      },
+      "Bonn": {
+        "F1": 92.07,
+        "rejection": 92.23,
+        "P": 87.24,
+        "R": 97.46,
+        "n_places": 21
+      },
+      "Freiburg": {
+        "F1": 88.01,
+        "rejection": 99.58,
+        "P": 91.76,
+        "R": 84.56,
+        "n_places": 14
+      },
+      "GardensPoint": {
+        "F1": 95.91,
+        "rejection": 100.0,
+        "P": 95.56,
+        "R": 96.27,
+        "n_places": 16
+      },
+      "SFU": {
+        "F1": 71.77,
+        "rejection": 79.31,
+        "P": 74.55,
+        "R": 69.2,
+        "n_places": 51
+      },
+      "ESSEX3IN1": {
+        "F1": 80.14,
+        "rejection": 60.32,
+        "P": 67.25,
+        "R": 99.14,
+        "n_places": 30
+      }
+    },
+    "3": {
+      "Nordland-500": {
+        "F1": 87.1,
+        "rejection": 100.0,
+        "P": 96.43,
+        "R": 79.41,
+        "n_places": 33
+      },
+      "Bonn": {
+        "F1": 91.94,
+        "rejection": 92.23,
+        "P": 87.02,
+        "R": 97.45,
+        "n_places": 20
+      },
+      "Freiburg": {
+        "F1": 88.01,
+        "rejection": 99.58,
+        "P": 91.76,
+        "R": 84.56,
+        "n_places": 14
+      },
+      "GardensPoint": {
+        "F1": 94.51,
+        "rejection": 93.33,
+        "P": 94.85,
+        "R": 94.16,
+        "n_places": 13
+      },
+      "SFU": {
+        "F1": 64.2,
+        "rejection": 78.45,
+        "P": 70.56,
+        "R": 58.9,
+        "n_places": 39
+      },
+      "ESSEX3IN1": {
+        "F1": 77.19,
+        "rejection": 55.56,
+        "P": 66.67,
+        "R": 91.67,
+        "n_places": 23
+      }
+    },
+    "4": {
+      "Nordland-500": {
+        "F1": 86.96,
+        "rejection": 99.33,
+        "P": 96.09,
+        "R": 79.41,
+        "n_places": 30
+      },
+      "Bonn": {
+        "F1": 91.81,
+        "rejection": 92.23,
+        "P": 86.79,
+        "R": 97.44,
+        "n_places": 20
+      },
+      "Freiburg": {
+        "F1": 88.01,
+        "rejection": 99.58,
+        "P": 91.76,
+        "R": 84.56,
+        "n_places": 14
+      },
+      "GardensPoint": {
+        "F1": 94.34,
+        "rejection": 100.0,
+        "P": 96.15,
+        "R": 92.59,
+        "n_places": 11
+      },
+      "SFU": {
+        "F1": 53.37,
+        "rejection": 78.45,
+        "P": 62.57,
+        "R": 46.52,
+        "n_places": 25
+      },
+      "ESSEX3IN1": {
+        "F1": 83.99,
+        "rejection": 74.6,
+        "P": 76.13,
+        "R": 93.65,
+        "n_places": 19
+      }
+    }
+  },
+  "divisor": {
+    "1.5": {
+      "Nordland-500": {
+        "F1": 77.84,
+        "rejection": 100.0,
+        "P": 97.81,
+        "R": 64.64,
+        "n_places": 33
+      },
+      "Bonn": {
+        "F1": 91.68,
+        "rejection": 92.23,
+        "P": 87.16,
+        "R": 96.69,
+        "n_places": 21
+      },
+      "Freiburg": {
+        "F1": 85.23,
+        "rejection": 99.58,
+        "P": 91.32,
+        "R": 79.9,
+        "n_places": 14
+      },
+      "GardensPoint": {
+        "F1": 94.74,
+        "rejection": 100.0,
+        "P": 95.45,
+        "R": 94.03,
+        "n_places": 16
+      },
+      "SFU": {
+        "F1": 69.25,
+        "rejection": 84.48,
+        "P": 75.62,
+        "R": 63.87,
+        "n_places": 51
+      },
+      "ESSEX3IN1": {
+        "F1": 81.53,
+        "rejection": 63.49,
+        "P": 69.23,
+        "R": 99.15,
+        "n_places": 30
+      }
+    },
+    "2.0": {
+      "Nordland-500": {
+        "F1": 87.1,
+        "rejection": 100.0,
+        "P": 96.43,
+        "R": 79.41,
+        "n_places": 33
+      },
+      "Bonn": {
+        "F1": 92.07,
+        "rejection": 92.23,
+        "P": 87.24,
+        "R": 97.46,
+        "n_places": 21
+      },
+      "Freiburg": {
+        "F1": 88.01,
+        "rejection": 99.58,
+        "P": 91.76,
+        "R": 84.56,
+        "n_places": 14
+      },
+      "GardensPoint": {
+        "F1": 95.91,
+        "rejection": 100.0,
+        "P": 95.56,
+        "R": 96.27,
+        "n_places": 16
+      },
+      "SFU": {
+        "F1": 71.77,
+        "rejection": 79.31,
+        "P": 74.55,
+        "R": 69.2,
+        "n_places": 51
+      },
+      "ESSEX3IN1": {
+        "F1": 80.14,
+        "rejection": 60.32,
+        "P": 67.25,
+        "R": 99.14,
+        "n_places": 30
+      }
+    },
+    "2.5": {
+      "Nordland-500": {
+        "F1": 92.4,
+        "rejection": 97.33,
+        "P": 94.41,
+        "R": 90.48,
+        "n_places": 33
+      },
+      "Bonn": {
+        "F1": 92.84,
+        "rejection": 92.23,
+        "P": 87.42,
+        "R": 98.98,
+        "n_places": 21
+      },
+      "Freiburg": {
+        "F1": 92.0,
+        "rejection": 99.58,
+        "P": 92.12,
+        "R": 91.89,
+        "n_places": 14
+      },
+      "GardensPoint": {
+        "F1": 96.68,
+        "rejection": 100.0,
+        "P": 95.62,
+        "R": 97.76,
+        "n_places": 16
+      },
+      "SFU": {
+        "F1": 69.55,
+        "rejection": 58.62,
+        "P": 66.8,
+        "R": 72.53,
+        "n_places": 51
+      },
+      "ESSEX3IN1": {
+        "F1": 79.58,
+        "rejection": 57.14,
+        "P": 66.47,
+        "R": 99.14,
+        "n_places": 30
+      }
+    },
+    "3.0": {
+      "Nordland-500": {
+        "F1": 93.84,
+        "rejection": 92.0,
+        "P": 92.22,
+        "R": 95.52,
+        "n_places": 33
+      },
+      "Bonn": {
+        "F1": 93.1,
+        "rejection": 92.23,
+        "P": 87.47,
+        "R": 99.49,
+        "n_places": 21
+      },
+      "Freiburg": {
+        "F1": 93.7,
+        "rejection": 99.58,
+        "P": 92.14,
+        "R": 95.32,
+        "n_places": 14
+      },
+      "GardensPoint": {
+        "F1": 95.34,
+        "rejection": 90.0,
+        "P": 91.72,
+        "R": 99.25,
+        "n_places": 16
+      },
+      "SFU": {
+        "F1": 68.97,
+        "rejection": 53.45,
+        "P": 65.13,
+        "R": 73.28,
+        "n_places": 51
+      },
+      "ESSEX3IN1": {
+        "F1": 79.58,
+        "rejection": 57.14,
+        "P": 66.47,
+        "R": 99.14,
+        "n_places": 30
+      }
+    }
+  }
+}

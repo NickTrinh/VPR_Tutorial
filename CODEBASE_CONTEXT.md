@@ -58,15 +58,19 @@ used for the paper. A CUDA GPU is needed only for the descriptor extraction step
 | `config.py`, `data_utils.py`, `utils.py` | Misc helpers (only `utils.normalize_l2` is used by the paper code) | partial |
 | `prepare_mini_dataset.py` | Builds mini subsets (legacy) | no |
 
-### `experiments/` — paper code (5 files only)
+### `experiments/` — paper code
 
 | File | Purpose |
 |------|---------|
-| `final_all_datasets.py` | **Canonical paper reproducer.** Loads all 6 datasets, runs discovery → threshold → filter-then-rank, compares to Vysotska. Writes `results/final_all_datasets_dinov2salad.json` and prints the summary tables that populate paper Tables 2 and 3. |
+| `final_all_datasets.py` | **Canonical paper reproducer (Tables II and III).** Loads all 6 datasets with DINOv2 SALAD descriptors, runs discovery → threshold → filter-then-rank, compares to Vysotska. Writes `results/final_all_datasets_dinov2salad.json`. |
+| `final_all_datasets_eigenplaces.py` | Same pipeline as above but reads EigenPlaces caches; produces **Tables IV and V** (descriptor-agnostic validation in §IV-E). Writes `results/final_all_datasets_eigenplaces.json`. |
 | `extract_dinov2_salad_all.py` | GPU descriptor extraction for all 6 datasets via `torch.hub.load("serizba/salad", "dinov2_salad")`. Re-runs skip already-cached images. |
+| `extract_eigenplaces_all.py` | GPU EigenPlaces (ResNet50, 2048-d) extraction for the same 6 datasets. Wipes target caches before extracting to guarantee a fresh run. Uses `Resize((480, 480))` so mixed-aspect-ratio datasets (ESSEX3IN1) don't crash `torch.stack`. |
 | `online_place_discovery.py` | `OnlinePlaceDiscovery` class — bootstrap (α=1.5) → online (m=2, h=2), Welford's incremental statistics. |
 | `vysotska_sequence_matcher.py` | Vysotska et al. graph-based matcher: DAG over (q,r) cells with real edges (cost=1−S) and hidden edges (fixed non-match cost), shortest path via topological sort. Self-contained — does not depend on the original `image_sequence_matcher/` package. |
 | `vysotska_threshold.py` | Vysotska et al. adaptive threshold: KS bimodality test + 2-component GMM + 1D Kalman filter on similarity-matrix patches. |
+| `robustness_sweep.py` | Sweeps α, m, h, divisor across the natural open-set protocol on all 6 datasets. Confirms α (F1 spread 0.20) and m (F1 stable for m≥2, catastrophic on ESSEX for m>2) are robust; divisor shows a real F1-vs-rejection Pareto tradeoff. Not reported in the paper. |
+| `bayes_k_comparison.py` | Per-place Bayes-derived divisor `k = sep / (1 + σ⁺/σ⁻)` vs the fixed `sep/2`. Reduces to `sep/2` when σ⁺=σ⁻. Tested across 6 datasets; Bayes wins F1 on 4/6 but uniformly loses rejection (1–23 pts), so the paper keeps `sep/2`. Not reported in the paper. |
 
 ### `feature_extraction/` — legacy descriptor extractors
 
@@ -113,7 +117,7 @@ images/
 ├── bonn_example/{reference, query}/images/*.jpg          (488 / 544) + gt_bonn_example.txt
 ├── freiburg_example/{reference, query}/images/*.jpg      (361 / 676) + gt_freiburg_example.txt
 ├── ESSEX3IN1/{reference_combined, query_combined}/*.jpg  (210 each)
-└── Nordland_Mini/{winter, summer}/*.jpg                  (first 500 each, 1 fps)
+└── Nordland-500/{winter, summer}/*.png                   (500 each, 1 fps, first 500 sorted alphabetically from the HF dump)
 ```
 
 **Vysotska ground-truth format** (Bonn, Freiburg) — `gt_<name>.txt`:
@@ -133,7 +137,7 @@ cache/<Dataset>/<condition_or_split>/dinov2-salad/img_<i>_descriptor.pkl
 ```
 
 Examples:
-- `cache/Nordland_salad/winter/dinov2_salad/img_0_descriptor.pkl`
+- `cache/Nordland-500/winter/dinov2-salad/img_0_descriptor.pkl`
 - `cache/Bonn/reference/dinov2-salad/img_0_descriptor.pkl`
 - `cache/GardensPoint/day_left/dinov2-salad/img_0_descriptor.pkl`
 
@@ -292,6 +296,40 @@ behaviour.
    ordering carries the signal. The full pipeline retains its F1 edge
    there because of the local-window prior, while neither standalone
    threshold (ours or theirs) is reliable.
+
+### Descriptor-Agnostic Validation (EigenPlaces, Tables IV–V)
+
+Reproducible via `python -m experiments.final_all_datasets_eigenplaces`
+after running `python -m experiments.extract_eigenplaces_all` (GPU
+recommended).
+
+**Closed-set F1 (%):**
+
+| Dataset | Ours | Vys. (thresh.) | Vys. (full) |
+|---------|------|----------------|-------------|
+| Nordland-500 | 82.1 | 95.5 | 98.2 |
+| Bonn | 73.7 | 89.2 | 92.1 |
+| Freiburg | 22.6 | 60.3 | 61.9 |
+| GardensPoint | 96.1 | 98.2 | 99.0 |
+| SFU | 67.2 | 90.0 | 98.7 |
+| ESSEX3IN1 | 85.9 | 96.3 | 99.0 |
+
+**Natural open-set F1 / rejection rate (%):**
+
+| Dataset | Ours F1 | Ours Rej | Vys-thr F1 | Vys-thr Rej | Vys F1 | Vys Rej |
+|---------|---------|----------|------------|-------------|--------|---------|
+| Nordland-500 | 76.3 | 98.7% | 79.1 | 1.3% | 89.2 | 52.0% |
+| Bonn | 73.0 | 87.4% | 82.9 | 10.7% | 93.9 | 86.4% |
+| Freiburg | 21.8 | 98.7% | 45.9 | 10.1% | 46.8 | 11.3% |
+| GardensPoint | 94.8 | 95.0% | 87.8 | 41.7% | 98.6 | 95.0% |
+| SFU | 52.8 | 62.9% | 73.1 | 16.4% | 86.4 | 33.6% |
+| ESSEX3IN1 | 77.0 | 31.8% | 80.2 | 1.6% | 87.9 | 39.7% |
+
+The relative ordering between thresholding mechanisms is preserved:
+per-place thresholds beat per-query thresholds on rejection on **all six
+datasets** by factors of ~1.5× to >75×. Absolute F1 drops because
+EigenPlaces is a weaker descriptor (baseline drops by 5 pts on Nordland
+and 30+ pts on Freiburg). Cited in §III-A and §IV-E of the paper.
 
 ---
 
